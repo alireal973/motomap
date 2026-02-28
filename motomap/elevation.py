@@ -1,56 +1,91 @@
+"""Elevation data integration with retry, fallback, and degrade mode."""
+
+import logging
+
 import osmnx as ox
 
-# Free Open Topo Data API — EU-DEM 25m resolution, covers Turkey/Europe
+logger = logging.getLogger(__name__)
+
 _OPEN_TOPO_URL = (
     "https://api.opentopodata.org/v1/eudem25m?locations={locations}"
 )
-
-# Open Topo Data has a rate limit of 1 req/sec and max 100 locations per request
 _OPEN_TOPO_BATCH_SIZE = 100
 _OPEN_TOPO_PAUSE = 1.0
+_MAX_RETRIES = 3
+
+
+class ElevationAPIError(RuntimeError):
+    """Raised when all elevation API attempts fail."""
+
+
+def _try_google(G, api_key, retries=_MAX_RETRIES):
+    """Try Google Elevation API with retry."""
+    for attempt in range(1, retries + 1):
+        try:
+            return ox.elevation.add_node_elevations_google(G, api_key=api_key)
+        except Exception as exc:
+            logger.warning(
+                "Google Elevation attempt %d/%d failed: %s",
+                attempt, retries, exc,
+            )
+    return None
+
+
+def _try_opentopo(G, retries=_MAX_RETRIES):
+    """Try Open Topo Data API with retry."""
+    original_url = ox.settings.elevation_url_template
+    for attempt in range(1, retries + 1):
+        try:
+            ox.settings.elevation_url_template = _OPEN_TOPO_URL
+            result = ox.elevation.add_node_elevations_google(
+                G,
+                api_key=None,
+                batch_size=_OPEN_TOPO_BATCH_SIZE,
+                pause=_OPEN_TOPO_PAUSE,
+            )
+            return result
+        except Exception as exc:
+            logger.warning(
+                "OpenTopo attempt %d/%d failed: %s",
+                attempt, retries, exc,
+            )
+        finally:
+            ox.settings.elevation_url_template = original_url
+    return None
+
+
+def _degrade_mode(G):
+    """Fallback: set elevation=0 for all nodes when all APIs fail."""
+    logger.error("All elevation APIs failed — degrade mode: elevation=0")
+    for node in G.nodes:
+        G.nodes[node].setdefault("elevation", 0)
+    return G
 
 
 def add_elevation(G, api_key=None):
     """Add elevation (meters) to all graph nodes via elevation API.
 
-    Uses Google Maps Elevation API when a valid api_key is provided.
-    Falls back to the free Open Topo Data API (no key required) otherwise.
+    Fallback chain:
+    1. Google Maps Elevation API (if api_key provided)
+    2. Open Topo Data API (free, no key)
+    3. Degrade mode (elevation=0 for all nodes)
 
-    Args:
-        G: networkx.MultiDiGraph from OSM.
-        api_key: Google Maps API key. If None, uses free Open Topo Data API.
-
-    Returns:
-        Graph with 'elevation' attribute on every node.
+    Each API is retried up to _MAX_RETRIES times.
     """
     if api_key:
-        try:
-            G = ox.elevation.add_node_elevations_google(G, api_key=api_key)
-            return G
-        except Exception:
-            # Google API might not be enabled; fall back to Open Topo Data
-            pass
+        result = _try_google(G, api_key)
+        if result is not None:
+            return result
 
-    # Free fallback: Open Topo Data
-    original_url = ox.settings.elevation_url_template
-    try:
-        ox.settings.elevation_url_template = _OPEN_TOPO_URL
-        G = ox.elevation.add_node_elevations_google(
-            G,
-            api_key=None,
-            batch_size=_OPEN_TOPO_BATCH_SIZE,
-            pause=_OPEN_TOPO_PAUSE,
-        )
-    finally:
-        ox.settings.elevation_url_template = original_url
-    return G
+    result = _try_opentopo(G)
+    if result is not None:
+        return result
+
+    return _degrade_mode(G)
 
 
 def add_grade(G):
     """Compute edge grades (slope) from node elevations.
-
-    Args:
-        G: Graph with elevation data on nodes.
 
     Returns:
         Graph with 'grade' and 'grade_abs' on every edge.
