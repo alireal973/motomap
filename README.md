@@ -121,8 +121,11 @@ flowchart TD
     D["GEZİ İÇİN"]
 
     C1["Başlangıç & Bitiş Noktası"]
-    C2["En Kısa Süre Rotası"]
-    C3["Lane Filtering Aktif"]
+    C2{"Ücretli Yol Tercihi?"}
+    C3["ucretli_serbest: Ücretli + Ücretsiz Adaylar"]
+    C4["ucretsiz: Ücretli Kenarlar Dışlanır"]
+    C5["Maliyet Minimizasyonu & Rota Seçimi"]
+    C6["Lane Filtering Aktif"]
 
     D1["Yüzey Tercihi"]
     D2["Viraj Seviyesi"]
@@ -133,14 +136,16 @@ flowchart TD
     B -->|"Hızlı Ulaşım"| C
     B -->|"Keşfet & Gez"| D
 
-    C --> C1 --> C2 --> C3
+    C --> C1 --> C2
+    C2 --> C3 --> C5 --> C6
+    C2 --> C4 --> C5
 
     D --> D1 & D2 & D3
     D1 & D2 & D3 --> D4
 
     style C fill:#2563eb,color:#fff
     style D fill:#16a34a,color:#fff
-    style C3 fill:#1d4ed8,color:#fff
+    style C6 fill:#1d4ed8,color:#fff
     style D4 fill:#15803d,color:#fff
 ```
 
@@ -153,6 +158,16 @@ $$
 $$
 
 $\mathcal{P}$: Tüm mümkün rotalar kümesi, $T_{moto}(e)$: Kenar $e$ üzerinde motosiklet geçiş süresi.
+
+Ücretli/ücretsiz tercih için iki aday rota birlikte değerlendirilir:
+
+$$
+P_{serbest}=\arg\min_{P}\sum_{e\in P}C_0(e),\qquad
+P_{ucretsiz}=\arg\min_{P:U(e)=0\ \forall e\in P}\sum_{e\in P}C_0(e)
+$$
+
+- `ucretli_serbest`: ücretli + ücretsiz adaylar birlikte optimize edilir.
+- `ucretsiz`: ücretli kenarlar hard constraint ile dışlanır.
 
 #### Mod 2 — Gezi İçin: Keyif Maksimizasyonu
 
