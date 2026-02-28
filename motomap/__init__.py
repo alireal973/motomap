@@ -5,6 +5,7 @@ from motomap.curve_risk import add_curve_and_risk_metrics, analyze_linestring_cu
 from motomap.data_cleaner import clean_graph
 from motomap.data_loader import load_graph
 from motomap.elevation import add_elevation, add_grade
+from motomap.osm_validator import filter_motorcycle_edges, EXCLUDED_HIGHWAY_TYPES
 from motomap.router import ucret_opsiyonlu_rota_hesapla
 
 
@@ -31,4 +32,6 @@ __all__ = [
     "ucret_opsiyonlu_rota_hesapla",
     "add_curve_and_risk_metrics",
     "analyze_linestring_curvature",
+    "filter_motorcycle_edges",
+    "EXCLUDED_HIGHWAY_TYPES",
 ]
