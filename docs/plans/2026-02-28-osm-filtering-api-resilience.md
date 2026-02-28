@@ -39,7 +39,7 @@ Her OSM kenarı $e$ için motosiklet uygunluk skoru:
 $$
 \text{uygun}(e) = \begin{cases}
 0, & \text{highway}(e) \in \mathcal{F} \\
-0, & \text{access}(e) = \texttt{no} \lor \text{motor\_vehicle}(e) = \texttt{no} \\
+0, & \text{access}(e) = \texttt{no} \lor \text{motor vehicle}(e) = \texttt{no} \\
 1, & \text{aksi halde}
 \end{cases}
 $$

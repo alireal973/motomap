@@ -80,3 +80,15 @@ class TestCleanGraph:
     def test_secondary_oneway_lanes_forward(self, cleaned):
         data = cleaned.edges[4, 5, 0]
         assert data["lanes_forward"] == 2  # oneway=True, 2 lanes
+
+def test_list_highway_gets_correct_defaults():
+    """When highway is a list, first element is used for default lookups."""
+    G = nx.MultiDiGraph()
+    G.add_edge(1, 2, 0, highway=["primary", "secondary"], length=100.0)
+    G2 = clean_graph(G)
+    data = G2.edges[1, 2, 0]
+    # primary defaults: lanes=4, maxspeed=82
+    assert data["lanes"] == 4
+    assert data["maxspeed"] == 82
+    assert data["surface"] == "asphalt"
+    assert "lanes_forward" in data
