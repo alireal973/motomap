@@ -562,6 +562,7 @@ Bu proje [MIT License](LICENSE) altında lisanslanmıştır.
 ## Yazar
 
 **Ali Özuysal**
+**Muhammet Yağcıoğlu**
 
 ---
 
