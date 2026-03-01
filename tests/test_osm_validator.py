@@ -111,3 +111,15 @@ class TestFilterMotorcycleEdges:
         for n, d in G2.nodes(data=True):
             assert "x" in d
             assert "y" in d
+
+
+def test_pipeline_excludes_invalid_edges():
+    """filter_motorcycle_edges works when integrated with clean_graph pipeline."""
+    from motomap.data_cleaner import clean_graph
+
+    G = _make_mixed_graph()
+    G = clean_graph(G)
+    G2 = filter_motorcycle_edges(G)
+    assert G2.number_of_edges() == 3
+    for _, _, d in G2.edges(data=True):
+        assert d.get("highway") not in EXCLUDED_HIGHWAY_TYPES

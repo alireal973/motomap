@@ -11,6 +11,10 @@ def test_motomap_graf_olustur_pipeline_order(monkeypatch):
         calls.append(("load_graph", place))
         return graph
 
+    def fake_filter_motorcycle_edges(g):
+        calls.append(("filter_motorcycle_edges", None))
+        return g
+
     def fake_add_elevation(g, api_key=None):
         calls.append(("add_elevation", api_key))
         return g
@@ -24,6 +28,7 @@ def test_motomap_graf_olustur_pipeline_order(monkeypatch):
         return g
 
     monkeypatch.setattr(motomap, "load_graph", fake_load_graph)
+    monkeypatch.setattr(motomap, "filter_motorcycle_edges", fake_filter_motorcycle_edges)
     monkeypatch.setattr(motomap, "add_elevation", fake_add_elevation)
     monkeypatch.setattr(motomap, "add_grade", fake_add_grade)
     monkeypatch.setattr(motomap, "clean_graph", fake_clean_graph)
@@ -33,6 +38,7 @@ def test_motomap_graf_olustur_pipeline_order(monkeypatch):
     assert result is graph
     assert calls == [
         ("load_graph", "Kadikoy, Istanbul, Turkey"),
+        ("filter_motorcycle_edges", None),
         ("add_elevation", "test-key"),
         ("add_grade", None),
         ("clean_graph", None),
@@ -45,6 +51,7 @@ def test_motomap_graf_olustur_uses_default_api_key(monkeypatch):
 
     monkeypatch.setattr(motomap, "GOOGLE_MAPS_API_KEY", "default-test-key")
     monkeypatch.setattr(motomap, "load_graph", lambda _place: graph)
+    monkeypatch.setattr(motomap, "filter_motorcycle_edges", lambda g: g)
     monkeypatch.setattr(
         motomap,
         "add_elevation",

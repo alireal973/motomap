@@ -14,13 +14,15 @@ def motomap_graf_olustur(place: str, api_key: str | None = None):
 
     Pipeline:
     1. Load road network from OSM
-    2. Add node elevations
-    3. Compute edge grades
-    4. Fill missing edge attributes
+    2. Filter motorcycle-illegal edges
+    3. Add node elevations
+    4. Compute edge grades
+    5. Fill missing edge attributes
     """
     resolved_api_key = api_key if api_key is not None else GOOGLE_MAPS_API_KEY
 
     graph = load_graph(place)
+    graph = filter_motorcycle_edges(graph)
     graph = add_elevation(graph, api_key=resolved_api_key)
     graph = add_grade(graph)
     graph = clean_graph(graph)
