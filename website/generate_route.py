@@ -175,6 +175,31 @@ def find_diverse_path(
     return None
 
 
+def find_diverse_path_relaxed(
+    graph: nx.MultiDiGraph,
+    source: int,
+    target: int,
+    weight_attr: str,
+    used_paths: list[list],
+    allow_toll: bool = True,
+) -> list | None:
+    """Try strict-to-relaxed diversity thresholds to avoid identical mode outputs."""
+    for overlap in (0.86, 0.92, 0.97, 0.995):
+        alt = find_diverse_path(
+            graph,
+            source=source,
+            target=target,
+            weight_attr=weight_attr,
+            used_paths=used_paths,
+            allow_toll=allow_toll,
+            max_candidates=140,
+            max_overlap=overlap,
+        )
+        if alt is not None:
+            return alt
+    return None
+
+
 def best_edge_data(graph: nx.MultiDiGraph, u: int, v: int, weight_attr: str) -> dict | None:
     edges = graph.get_edge_data(u, v) or {}
     if not edges:
@@ -220,6 +245,48 @@ def summarize_path(graph: nx.MultiDiGraph, nodes: list, weight_attr: str) -> dic
         "yuksek_risk_segment_sayisi": high_risk_count,
         "ortalama_egim_orani": (sum(grades) / len(grades)) if grades else 0.0,
     }
+
+
+def find_fun_richer_path(
+    graph: nx.MultiDiGraph,
+    source: int,
+    target: int,
+    weight_attr: str,
+    min_fun_count: int,
+    base_time_s: float,
+    max_candidates: int = 80,
+    max_time_multiplier: float = 2.2,
+) -> tuple[dict, list] | None:
+    """Try to find an alternative viraj route with equal/higher fun score."""
+    dg = build_weighted_digraph(graph, weight_attr=weight_attr, allow_toll=True)
+    if source not in dg or target not in dg:
+        return None
+
+    try:
+        candidates = nx.shortest_simple_paths(dg, source, target, weight="weight")
+    except nx.NetworkXNoPath:
+        return None
+
+    best_summary = None
+    best_nodes = None
+    best_fun = -1
+
+    for candidate in itertools.islice(candidates, max_candidates):
+        summary = summarize_path(graph, candidate, weight_attr=weight_attr)
+        if summary["toplam_sure_s"] > float(base_time_s) * max_time_multiplier:
+            continue
+
+        fun_count = int(summary["viraj_fun_sayisi"])
+        if fun_count >= int(min_fun_count):
+            return summary, list(candidate)
+        if fun_count > best_fun:
+            best_fun = fun_count
+            best_summary = summary
+            best_nodes = list(candidate)
+
+    if best_summary is None or best_nodes is None:
+        return None
+    return best_summary, best_nodes
 
 
 def main() -> None:
@@ -290,6 +357,41 @@ def main() -> None:
                     print(
                         f"  -> Diversified fallback secildi ({len(mode_nodes)} nokta, "
                         f"overlap {max_current_overlap:.2f})"
+                    )
+                else:
+                    relaxed_nodes = find_diverse_path_relaxed(
+                        graph,
+                        source=origin_node,
+                        target=destination_node,
+                        weight_attr=mode_weight,
+                        used_paths=selected_paths,
+                        allow_toll=True,
+                    )
+                    if relaxed_nodes is not None:
+                        selected = summarize_path(graph, relaxed_nodes, weight_attr=mode_weight)
+                        mode_nodes = relaxed_nodes
+                        print(
+                            f"  -> Relaxed diversity fallback secildi ({len(mode_nodes)} nokta, "
+                            f"overlap hedefi gevsetildi)"
+                        )
+
+        if mode == "viraj_keyfi" and "standart" in result["modes"]:
+            standard_fun = int(result["modes"]["standart"]["stats"]["viraj_fun"])
+            current_fun = int(selected["viraj_fun_sayisi"])
+            if current_fun < standard_fun:
+                richer = find_fun_richer_path(
+                    graph,
+                    source=origin_node,
+                    target=destination_node,
+                    weight_attr=mode_weight,
+                    min_fun_count=standard_fun,
+                    base_time_s=float(selected["toplam_sure_s"]),
+                )
+                if richer is not None:
+                    selected, mode_nodes = richer
+                    print(
+                        f"  -> Fun fallback secildi (viraj_fun: {current_fun} -> "
+                        f"{selected['viraj_fun_sayisi']}, hedef >= {standard_fun})"
                     )
 
         selected_paths.append(mode_nodes)

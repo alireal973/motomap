@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 from collections.abc import Hashable
 
@@ -11,6 +12,12 @@ from motomap.curve_risk import add_curve_and_risk_metrics
 
 TRAVEL_TIME_ATTR = "travel_time_s"
 DEFAULT_SPEED_KMH = 50.0
+# Effective moving speed calibration for real-world urban riding.
+# 1.0 means raw OSM maxspeed, lower values increase ETA.
+DEFAULT_REAL_WORLD_SPEED_FACTOR = 0.55
+# Per-segment delay (signal/turn/yield/friction) to avoid over-optimistic ETA,
+# especially on short urban routes.
+DEFAULT_SEGMENT_DELAY_S = 2.0
 
 # Road type bonuses for viraj_keyfi: prefer smaller, scenic roads
 _VIRAJ_KEYFI_ROAD_BONUS = {
@@ -20,6 +27,7 @@ _VIRAJ_KEYFI_ROAD_BONUS = {
     "tertiary_link": 0.10,
     "unclassified": 0.12,
     "secondary": 0.05,
+    "service": 0.08,
 }
 
 # Road type penalties for guvenli: penalize narrow/unpredictable roads
@@ -29,6 +37,18 @@ _GUVENLI_ROAD_PENALTY = {
     "tertiary": 0.06,
     "tertiary_link": 0.08,
     "unclassified": 0.18,
+    "service": 0.20,
+}
+
+# Light penalties for standart mode to avoid unrealistic micro-shortcuts
+# (service/track/internal roads) that often diverge from Google baseline.
+_STANDART_ROAD_PENALTY = {
+    "service": 0.45,
+    "track": 1.20,
+    "road": 0.35,
+    "living_street": 0.22,
+    "residential": 0.04,
+    "unclassified": 0.10,
 }
 
 
@@ -87,11 +107,23 @@ def add_travel_time_to_graph(
     attr_name: str = TRAVEL_TIME_ATTR,
 ) -> nx.MultiDiGraph:
     """Add per-edge travel time in seconds."""
+    speed_factor = _safe_float(
+        os.getenv("MOTOMAP_SPEED_FACTOR"),
+        default=DEFAULT_REAL_WORLD_SPEED_FACTOR,
+    )
+    # Guard against broken env values and keep factor in a sane range.
+    speed_factor = min(1.0, max(0.2, speed_factor))
+    segment_delay_s = _safe_float(
+        os.getenv("MOTOMAP_SEGMENT_DELAY_S"),
+        default=DEFAULT_SEGMENT_DELAY_S,
+    )
+    segment_delay_s = min(8.0, max(0.0, segment_delay_s))
+
     for _, _, _, data in graph.edges(keys=True, data=True):
         length_m = float(data.get("length", 0.0) or 0.0)
         speed_kmh = _parse_speed_kmh(data.get("maxspeed"), default=DEFAULT_SPEED_KMH)
-        speed_ms = max(1.0, speed_kmh / 3.6)
-        data[attr_name] = length_m / speed_ms
+        speed_ms = max(1.0, (speed_kmh * speed_factor) / 3.6)
+        data[attr_name] = (length_m / speed_ms) + segment_delay_s
     return graph
 
 
@@ -186,7 +218,7 @@ def _summarize_route(
 
 def _mode_weight_attr(surus_modu: str) -> str:
     return {
-        "standart": TRAVEL_TIME_ATTR,
+        "standart": "route_cost_standart_s",
         "viraj_keyfi": "route_cost_viraj_keyfi_s",
         "guvenli": "route_cost_guvenli_s",
     }[surus_modu]
@@ -207,7 +239,13 @@ def _build_mode_specific_cost(
 ) -> str:
     """Build route-cost edge weights for selected driving mode."""
     if surus_modu == "standart":
-        return base_weight
+        weight_attr = _mode_weight_attr(surus_modu)
+        for _, _, _, data in graph.edges(keys=True, data=True):
+            base = _safe_float(data.get(base_weight), default=0.0)
+            highway = _get_highway_type(data)
+            road_penalty = _STANDART_ROAD_PENALTY.get(highway, 0.0)
+            data[weight_attr] = base * (1.0 + road_penalty)
+        return weight_attr
 
     add_curve_and_risk_metrics(graph)
     weight_attr = _mode_weight_attr(surus_modu)
@@ -225,11 +263,11 @@ def _build_mode_specific_cost(
             road_bonus = _VIRAJ_KEYFI_ROAD_BONUS.get(highway, 0.0)
             bonus = (
                 1.0
-                + 0.35 * curvature_score
-                + 0.07 * float(fun_count)
+                + 0.55 * curvature_score
+                + 0.14 * float(fun_count)
                 + road_bonus
             )
-            penalty = 1.0 + 0.20 * float(danger_count) + 0.60 * high_risk
+            penalty = 1.0 + 0.12 * float(danger_count) + 0.45 * high_risk
             data[weight_attr] = (base / max(1e-6, bonus)) * penalty
             continue
 
