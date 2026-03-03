@@ -13,8 +13,10 @@ FUN_ANGLE_MIN_DEG = 15.0
 FUN_ANGLE_MAX_DEG = 45.0
 DANGER_ANGLE_DEG = 60.0
 DEFAULT_INTERPOLATION_STEP_M = 10.0
+DEFAULT_CURVATURE_CHUNK_M = 250.0
 HAIRPIN_DISTANCE_THRESHOLD_M = 20.0
 RISKY_DOWNHILL_THRESHOLD = -0.08
+SIGNIFICANT_ANGLE_DEG = 5.0
 
 
 def _safe_float(value, default: float = 0.0) -> float:
@@ -85,6 +87,7 @@ def analyze_linestring_curvature(
     line: LineString,
     length_m: float,
     interpolation_step_m: float = DEFAULT_INTERPOLATION_STEP_M,
+    curvature_chunk_m: float = DEFAULT_CURVATURE_CHUNK_M,
     hairpin_distance_threshold_m: float = HAIRPIN_DISTANCE_THRESHOLD_M,
 ) -> dict:
     """Analyze curvature on a line using vectorized angle changes."""
@@ -117,6 +120,8 @@ def analyze_linestring_curvature(
     resampled_angles = _angles_from_points(points)
     original_points = np.asarray(line.coords, dtype=float)
     original_angles = _angles_from_points(original_points)
+    # Keep both sampled and original geometry angles: sampled captures overall
+    # shape, original preserves sharp turns from sparse geometries.
     angles_deg = np.concatenate([resampled_angles, original_angles])
 
     if angles_deg.size == 0:
@@ -130,21 +135,66 @@ def analyze_linestring_curvature(
             "danger_score": 0.0,
         }
 
-    fun_mask = (angles_deg > FUN_ANGLE_MIN_DEG) & (angles_deg < FUN_ANGLE_MAX_DEG)
-    danger_mask = angles_deg > DANGER_ANGLE_DEG
+    significant_mask = angles_deg >= SIGNIFICANT_ANGLE_DEG
+    significant_angles = angles_deg[significant_mask]
+    if significant_angles.size == 0:
+        return {
+            "angle_count": 0,
+            "avg_angle_deg": 0.0,
+            "fun_count": 0,
+            "danger_count": 0,
+            "hairpin_count": 0,
+            "curvature_score": 0.0,
+            "danger_score": 0.0,
+        }
+
+    fun_mask = (significant_angles > FUN_ANGLE_MIN_DEG) & (
+        significant_angles < FUN_ANGLE_MAX_DEG
+    )
+    danger_mask = significant_angles > DANGER_ANGLE_DEG
 
     fun_count = int(np.sum(fun_mask))
     danger_count = int(np.sum(danger_mask))
-    angle_count = int(angles_deg.size)
-    avg_angle_deg = float(np.mean(angles_deg)) if angle_count else 0.0
+    angle_count = int(significant_angles.size)
+    avg_angle_deg = float(np.mean(significant_angles)) if angle_count else 0.0
 
     local_step_m = safe_length / max(1, samples - 1)
+    chunk_span = max(
+        1,
+        int(np.ceil(float(curvature_chunk_m) / max(1e-6, local_step_m))),
+    )
+    chunk_scores = []
+    chunk_danger_scores = []
+    for idx in range(0, angle_count, chunk_span):
+        chunk = significant_angles[idx: idx + chunk_span]
+        if chunk.size == 0:
+            continue
+        chunk_fun = int(np.sum((chunk > FUN_ANGLE_MIN_DEG) & (chunk < FUN_ANGLE_MAX_DEG)))
+        chunk_danger = int(np.sum(chunk > DANGER_ANGLE_DEG))
+        chunk_fun_ratio = float(chunk_fun) / float(max(1, chunk.size))
+        chunk_danger_ratio = float(chunk_danger) / float(max(1, chunk.size))
+        chunk_scores.append(chunk_fun_ratio / (1.0 + chunk_danger_ratio))
+        chunk_danger_scores.append(chunk_danger_ratio)
+
     hairpin_count = (
         danger_count if local_step_m <= hairpin_distance_threshold_m else 0
     )
 
-    curvature_score = float(fun_count) / (1.0 + float(danger_count))
-    danger_score = float(danger_count) / (1.0 + float(angle_count))
+    # Chunk-normalized score reduces long-distance drift by averaging
+    # local curvature behavior instead of accumulating globally.
+    curvature_score = (
+        float(np.mean(chunk_scores))
+        if chunk_scores
+        else (
+            (float(fun_count) / float(max(1, angle_count)))
+            / (1.0 + (float(danger_count) / float(max(1, angle_count))))
+        )
+    )
+    danger_score = (
+        float(np.mean(chunk_danger_scores))
+        if chunk_danger_scores
+        else (float(danger_count) / float(max(1, angle_count)))
+    )
     return {
         "angle_count": angle_count,
         "avg_angle_deg": avg_angle_deg,
@@ -159,6 +209,7 @@ def analyze_linestring_curvature(
 def add_curve_and_risk_metrics(
     graph: nx.MultiDiGraph,
     interpolation_step_m: float = DEFAULT_INTERPOLATION_STEP_M,
+    curvature_chunk_m: float = DEFAULT_CURVATURE_CHUNK_M,
 ) -> nx.MultiDiGraph:
     """Annotate edges with curvature and combined slope risk metrics."""
     for u, v, k, data in graph.edges(keys=True, data=True):
@@ -170,6 +221,7 @@ def add_curve_and_risk_metrics(
             line=line,
             length_m=length_m,
             interpolation_step_m=interpolation_step_m,
+            curvature_chunk_m=curvature_chunk_m,
         )
 
         high_risk = (

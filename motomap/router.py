@@ -51,6 +51,31 @@ _STANDART_ROAD_PENALTY = {
     "unclassified": 0.10,
 }
 
+_MAJOR_HIGHWAY_TYPES = {
+    "motorway",
+    "motorway_link",
+    "trunk",
+    "trunk_link",
+}
+
+_SHORTCUT_PRONE_TYPES = {
+    "service",
+    "track",
+    "road",
+    "unclassified",
+}
+
+# Extra penalty on very short local connectors touching major highways.
+_MOTORWAY_SIDE_CONNECTOR_PENALTY = 0.85
+_MOTORWAY_SIDE_CONNECTOR_MAX_LEN_M = 260.0
+
+_CC_RESTRICTED_HIGHWAY_TYPES = {
+    "motorway",
+    "motorway_link",
+    "trunk",
+    "trunk_link",
+}
+
 
 class NoRouteFoundError(ValueError):
     """Raised when no route can be found for the selected preference."""
@@ -232,18 +257,85 @@ def _get_highway_type(data: dict) -> str:
     return str(hw)
 
 
+def _to_motor_cc(value) -> float | None:
+    if value is None:
+        return None
+    return max(1.0, _safe_float(value, default=0.0))
+
+
+def _cc_grade_penalty(grade: float, motor_cc: float | None) -> float:
+    """Return slope penalty multiplier based on motorcycle displacement class."""
+    if motor_cc is None:
+        return 1.0
+
+    abs_grade = abs(float(grade))
+
+    if motor_cc <= 50.0:
+        if abs_grade > 0.12:
+            return 6.0
+        if abs_grade > 0.08:
+            return 3.0
+        if abs_grade > 0.06:
+            return 2.0
+        if abs_grade > 0.04:
+            return 1.35
+        return 1.0
+
+    if motor_cc < 250.0:
+        if abs_grade > 0.12:
+            return 2.0
+        if abs_grade > 0.09:
+            return 1.5
+        if abs_grade > 0.06:
+            return 1.2
+        return 1.0
+
+    if abs_grade > 0.14:
+        return 1.35
+    if abs_grade > 0.10:
+        return 1.15
+    return 1.0
+
+
+def _cc_highway_penalty(highway: str, motor_cc: float | None) -> float:
+    if motor_cc is None:
+        return 1.0
+    if motor_cc <= 50.0 and highway in _CC_RESTRICTED_HIGHWAY_TYPES:
+        return 1e6
+    return 1.0
+
+
 def _build_mode_specific_cost(
     graph: nx.MultiDiGraph,
     surus_modu: str,
     base_weight: str = TRAVEL_TIME_ATTR,
+    motor_cc: float | None = None,
 ) -> str:
     """Build route-cost edge weights for selected driving mode."""
+    major_adjacent_nodes = set()
+    for u, v, _, data in graph.edges(keys=True, data=True):
+        if _get_highway_type(data) in _MAJOR_HIGHWAY_TYPES:
+            major_adjacent_nodes.add(u)
+            major_adjacent_nodes.add(v)
+
     if surus_modu == "standart":
         weight_attr = _mode_weight_attr(surus_modu)
-        for _, _, _, data in graph.edges(keys=True, data=True):
+        for u, v, _, data in graph.edges(keys=True, data=True):
             base = _safe_float(data.get(base_weight), default=0.0)
             highway = _get_highway_type(data)
+            grade = _safe_float(data.get("grade"), default=0.0)
+            length_m = _safe_float(data.get("length"), default=0.0)
+
+            base *= _cc_grade_penalty(grade=grade, motor_cc=motor_cc)
+            base *= _cc_highway_penalty(highway=highway, motor_cc=motor_cc)
+
             road_penalty = _STANDART_ROAD_PENALTY.get(highway, 0.0)
+            if (
+                highway in _SHORTCUT_PRONE_TYPES
+                and length_m <= _MOTORWAY_SIDE_CONNECTOR_MAX_LEN_M
+                and (u in major_adjacent_nodes or v in major_adjacent_nodes)
+            ):
+                road_penalty += _MOTORWAY_SIDE_CONNECTOR_PENALTY
             data[weight_attr] = base * (1.0 + road_penalty)
         return weight_attr
 
@@ -257,17 +349,29 @@ def _build_mode_specific_cost(
         curvature_score = _safe_float(data.get("viraj_katsayisi"), default=0.0)
         high_risk = 1.0 if data.get("yuksek_risk_bolge", False) else 0.0
         grade = _safe_float(data.get("grade"), default=0.0)
+        length_m = _safe_float(data.get("length"), default=0.0)
         highway = _get_highway_type(data)
+
+        length_km = max(0.05, length_m / 1000.0)
+        fun_density = float(fun_count) / length_km
+        danger_density = float(danger_count) / length_km
+        # Saturate density effects so long-distance segments do not dominate.
+        fun_density_term = fun_density / (2.0 + fun_density)
+        danger_density_term = danger_density / (2.0 + danger_density)
+        curvature_term = curvature_score / (1.0 + curvature_score)
+
+        base *= _cc_grade_penalty(grade=grade, motor_cc=motor_cc)
+        base *= _cc_highway_penalty(highway=highway, motor_cc=motor_cc)
 
         if surus_modu == "viraj_keyfi":
             road_bonus = _VIRAJ_KEYFI_ROAD_BONUS.get(highway, 0.0)
             bonus = (
                 1.0
-                + 0.55 * curvature_score
-                + 0.14 * float(fun_count)
+                + 0.95 * curvature_term
+                + 0.70 * fun_density_term
                 + road_bonus
             )
-            penalty = 1.0 + 0.12 * float(danger_count) + 0.45 * high_risk
+            penalty = 1.0 + 0.25 * danger_density_term + 0.45 * high_risk
             data[weight_attr] = (base / max(1e-6, bonus)) * penalty
             continue
 
@@ -276,7 +380,7 @@ def _build_mode_specific_cost(
         downhill_penalty = max(0.0, abs(min(0.0, grade)) - 0.08)
         penalty = (
             1.0
-            + 0.55 * float(danger_count)
+            + 0.55 * danger_density_term
             + 1.40 * high_risk
             + 5.00 * downhill_penalty
             + road_penalty
@@ -292,6 +396,7 @@ def ucret_opsiyonlu_rota_hesapla(
     target: Hashable,
     tercih: str = "ucretli_serbest",
     surus_modu: str = "standart",
+    motor_cc: float | None = None,
     weight: str = TRAVEL_TIME_ATTR,
 ) -> dict:
     """Compute toll-aware route outputs and apply user preference.
@@ -311,12 +416,14 @@ def ucret_opsiyonlu_rota_hesapla(
         raise ValueError(
             "surus_modu must be 'standart', 'viraj_keyfi', or 'guvenli'"
         )
+    resolved_cc = _to_motor_cc(motor_cc)
 
     add_travel_time_to_graph(graph, attr_name=weight)
     resolved_weight = _build_mode_specific_cost(
         graph,
         surus_modu=surus_modu,
         base_weight=weight,
+        motor_cc=resolved_cc,
     )
 
     serbest_nodes = _shortest_path(
@@ -366,6 +473,7 @@ def ucret_opsiyonlu_rota_hesapla(
     return {
         "tercih": tercih,
         "surus_modu": surus_modu,
+        "motor_cc": resolved_cc,
         "secilen_rota": secilen,
         "alternatifler": alternatifler,
     }

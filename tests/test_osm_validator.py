@@ -42,6 +42,20 @@ def _make_access_restricted_graph():
     return G
 
 
+def _make_service_restricted_graph():
+    G = nx.MultiDiGraph()
+    G.add_node(1, x=29.0, y=41.0)
+    G.add_node(2, x=29.01, y=41.0)
+    G.add_node(3, x=29.02, y=41.0)
+    G.add_node(4, x=29.03, y=41.0)
+
+    G.add_edge(1, 2, 0, highway="service", service="driveway", length=40.0)
+    G.add_edge(2, 3, 0, highway="service", service="emergency_access", length=50.0)
+    G.add_edge(3, 4, 0, highway="service", service="alley", length=55.0)
+    G.add_edge(1, 4, 0, highway="primary", length=120.0)
+    return G
+
+
 class TestFilterMotorcycleEdges:
 
     def test_removes_cycleway(self):
@@ -74,6 +88,13 @@ class TestFilterMotorcycleEdges:
         highways = [d.get("highway") for _, _, d in G2.edges(data=True)]
         assert "steps" not in highways
 
+    def test_removes_track(self):
+        G = _make_mixed_graph()
+        G.add_edge(4, 2, 0, highway="track", length=20.0)
+        G2 = filter_motorcycle_edges(G)
+        highways = [d.get("highway") for _, _, d in G2.edges(data=True)]
+        assert "track" not in highways
+
     def test_keeps_valid_edges(self):
         G = _make_mixed_graph()
         G2 = filter_motorcycle_edges(G)
@@ -97,6 +118,19 @@ class TestFilterMotorcycleEdges:
         G2 = filter_motorcycle_edges(G)
         for _, _, d in G2.edges(data=True):
             assert d.get("motor_vehicle") != "no"
+
+    def test_removes_service_driveway_and_emergency_access(self):
+        G = _make_service_restricted_graph()
+        G2 = filter_motorcycle_edges(G)
+        services = [d.get("service") for _, _, d in G2.edges(data=True)]
+        assert "driveway" not in services
+        assert "emergency_access" not in services
+
+    def test_keeps_service_alley_when_not_denied(self):
+        G = _make_service_restricted_graph()
+        G2 = filter_motorcycle_edges(G)
+        services = [d.get("service") for _, _, d in G2.edges(data=True)]
+        assert "alley" in services
 
     def test_excluded_types_constant(self):
         assert "cycleway" in EXCLUDED_HIGHWAY_TYPES

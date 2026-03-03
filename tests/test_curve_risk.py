@@ -53,3 +53,49 @@ def test_add_curve_and_risk_metrics_marks_high_risk_downhill_hairpin():
     assert data["viraj_tehlike_sayisi"] > 0
     assert data["viraj_hairpin_sayisi"] > 0
     assert data["yuksek_risk_bolge"] is True
+
+
+def test_curvature_score_is_stable_for_repeated_pattern():
+    short_line = LineString(
+        [
+            (0.0, 0.0),
+            (1.0, 0.0),
+            (1.8, 0.6),
+            (2.6, 0.0),
+            (3.4, 0.6),
+            (4.2, 0.0),
+        ]
+    )
+    long_line = LineString(
+        [
+            (0.0, 0.0),
+            (1.0, 0.0),
+            (1.8, 0.6),
+            (2.6, 0.0),
+            (3.4, 0.6),
+            (4.2, 0.0),
+            (5.0, 0.6),
+            (5.8, 0.0),
+            (6.6, 0.6),
+            (7.4, 0.0),
+            (8.2, 0.6),
+            (9.0, 0.0),
+        ]
+    )
+
+    short_metrics = analyze_linestring_curvature(
+        short_line,
+        length_m=220.0,
+        interpolation_step_m=10.0,
+        curvature_chunk_m=80.0,
+    )
+    long_metrics = analyze_linestring_curvature(
+        long_line,
+        length_m=520.0,
+        interpolation_step_m=10.0,
+        curvature_chunk_m=80.0,
+    )
+
+    assert short_metrics["curvature_score"] > 0
+    assert long_metrics["curvature_score"] > 0
+    assert abs(short_metrics["curvature_score"] - long_metrics["curvature_score"]) < 0.25
