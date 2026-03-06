@@ -37,3 +37,9 @@ website/dist/
 
 # Generated route data
 website/routes/
+
+# LaTeX / PDF build sidecars
+*.aux
+*.log
+*.out
+*.toc

@@ -1,52 +1,55 @@
-﻿# MotoMap Sistem Katmanlari
+[![Language: English](https://img.shields.io/badge/Language-English-1f6feb)](system-layers-and-calibration.md)
+[![Language: Turkish](https://img.shields.io/badge/Language-Turkish-c92a2a)](system-layers-and-calibration.tr.md)
 
-Bu dokuman, MotoMap'in uctan uca teknik katmanlarini ve kalibrasyon/degerlendirme geri-besleme dongusunu tek yerde ozetler.
+# MotoMap System Layers
 
-## 1) Ana Mimari (Katmanli)
+This document summarizes MotoMap's end-to-end technical layers and the calibration and evaluation feedback loop in one place.
+
+## 1. High-level layered architecture
 
 ```mermaid
 flowchart TB
-    subgraph L0[Katman 0 - Harici Veri Kaynaklari]
-        OSM[OpenStreetMap yol agi]
+    subgraph L0[Layer 0 - External Data Sources]
+        OSM[OpenStreetMap road network]
         ELEV[Google Elevation API / OpenTopo]
-        TRAFIK[Canli trafik kaynagi]
-        OBS[GPS izleri / benchmark verisi]
+        TRAFFIC[Live traffic source]
+        OBS[GPS traces / benchmark data]
     end
 
-    subgraph L1[Katman 1 - Veri Alma ve Dayaniklilik]
+    subgraph L1[Layer 1 - Ingestion and Resilience]
         DL[data_loader.py\nload_graph]
         OV[osm_validator.py\nfilter_motorcycle_edges]
         EL[elevation.py\nadd_elevation + fallback]
     end
 
-    subgraph L2[Katman 2 - Ozellik Uretimi]
+    subgraph L2[Layer 2 - Feature Engineering]
         GR[elevation.py\nadd_grade]
         CL[data_cleaner.py\nclean_graph]
-        CR[curve_risk.py\ncurve + risk metrikleri]
+        CR[curve_risk.py\ncurve + risk metrics]
     end
 
-    subgraph L3[Katman 3 - Maliyet ve Rota Cekirdegi]
+    subgraph L3[Layer 3 - Cost and Routing Core]
         TT[router.py\nadd_travel_time_to_graph]
         MW[router.py\nmode-specific weight]
         RT[router.py\nucret_opsiyonlu_rota_hesapla]
     end
 
-    subgraph L4[Katman 4 - Orkestrasyon ve Sunum]
+    subgraph L4[Layer 4 - Orchestration and Delivery]
         PUB[motomap.__init__.py\nmotomap_graf_olustur]
-        API[REST API / servis katmani]
-        APP[Web/Mobil istemci]
-        OUT[Script ciktilari\nmap/pdf/png/npz]
+        API[REST API / service layer]
+        APP[Web / mobile client]
+        OUT[Script outputs\nmap/pdf/png/npz]
     end
 
-    subgraph L5[Katman 5 - Degerlendirme ve Kalibrasyon]
-        MET[Metric hesaplari\nETA, risk, rota farki]
-        EVA[Eval setleri\nmode/baseline karsilastirma]
-        TUNE[Parametre ayari\nspeed factor, delay, ceza agirliklari]
+    subgraph L5[Layer 5 - Evaluation and Calibration]
+        MET[Metric computation\nETA, risk, route delta]
+        EVA[Evaluation sets\nmode/baseline comparison]
+        TUNE[Parameter tuning\nspeed factor, delay, penalties]
     end
 
     OSM --> DL
     ELEV --> EL
-    TRAFIK --> TT
+    TRAFFIC --> TT
     OBS --> EVA
 
     DL --> OV --> EL --> GR --> CL --> CR
@@ -64,59 +67,53 @@ flowchart TB
     PUB --> EL
     PUB --> GR
     PUB --> CL
-
-    style L0 fill:#fef3c7,stroke:#d97706
-    style L1 fill:#dbeafe,stroke:#1d4ed8
-    style L2 fill:#dcfce7,stroke:#15803d
-    style L3 fill:#ede9fe,stroke:#6d28d9
-    style L4 fill:#fee2e2,stroke:#b91c1c
-    style L5 fill:#e0f2fe,stroke:#0369a1
 ```
 
-## 2) Katman Bazli Ne / Neden
+## 2. Layer-by-layer purpose
 
-| Katman | Ne yapar? | Neden gerekli? | Baslica bilesenler |
+| Layer | What it does | Why it matters | Main components |
 |---|---|---|---|
-| 0. Harici veri | Yol, yukseklik, trafik ve gozlem verisini saglar. | Rota motoru dogru model icin gercek dunya girdisine baglidir. | OSM, Google/OpenTopo, trafik feed, GPS izleri |
-| 1. Veri alma | Grafin cekilmesi, motosiklete uygun olmayan kenarlarin elenmesi, elevation fallback. | Kirli/eksik veri dogrudan rota hatasina donusur; dayaniklilik gerekir. | `data_loader.py`, `osm_validator.py`, `elevation.py` |
-| 2. Ozellik uretimi | Eğim, serit/speed/surface tamamlama, viraj ve risk metrikleri. | Ham OSM etiketi tek basina rota maliyetini aciklamaz. | `add_grade`, `clean_graph`, `add_curve_and_risk_metrics` |
-| 3. Cekirdek rota | Sure tabanli temel maliyet + mod bazli agirlik + ucretli/ucretsiz secim. | Kullanici tercihini (standart/guvenli/viraj keyfi) sayisal optimizasyona cevirir. | `router.py` |
-| 4. Sunum | Pipeline orkestrasyonu, API entegrasyonu, istemciye sonuc sunumu. | Cekirdek algoritmayi urun arayuzu ile birlestirir. | `motomap_graf_olustur`, servis katmani, script ciktilari |
-| 5. Eval+kalibrasyon | KPI olcumu, baseline karsilastirmasi, parametre geri beslemesi. | Modeli sahadaki davranisa yaklastirir ve regresyonu sinirlar. | metric/eval scriptleri, parametre tuning |
+| 0. External data | Supplies roads, elevation, traffic, and observations. | Routing quality depends on real-world inputs. | OSM, Google/OpenTopo, traffic feeds, GPS traces |
+| 1. Ingestion | Loads the graph, removes motorcycle-invalid edges, adds resilient elevation fallback. | Dirty or incomplete inputs become routing defects quickly. | `data_loader.py`, `osm_validator.py`, `elevation.py` |
+| 2. Feature engineering | Computes grade, fills lanes/speed/surface, derives curve and risk metrics. | Raw OSM tags are not enough to explain rider cost. | `add_grade`, `clean_graph`, `add_curve_and_risk_metrics` |
+| 3. Routing core | Builds time-based costs plus mode-specific weights and toll/free choices. | Converts rider intent into numeric optimization. | `router.py` |
+| 4. Delivery | Orchestrates the pipeline and exposes results to APIs, apps, and artifacts. | Bridges the routing engine with actual product surfaces. | `motomap_graf_olustur`, service layer, output scripts |
+| 5. Evaluation | Measures KPIs, compares baselines, and tunes parameters. | Prevents regressions and aligns the model with real behavior. | metrics, eval scripts, tuning loops |
 
-## 3) Kalibrasyon / Degerlendirme Dongusu (Flow)
+## 3. Calibration and evaluation loop
 
 ```mermaid
 flowchart LR
-    A[1. Senaryo ve gozlem verisi hazirla\nOD seti + GPS/baseline] -->
-    B[2. Mevcut parametrelerle rota uret\nstandart/guvenli/viraj_keyfi]
+    A[1. Prepare scenarios and observations\nOD set + GPS / baseline] -->
+    B[2. Generate routes with current parameters\nstandard / safe / twisty]
 
-    B --> C[3. Metrikleri hesapla\nETA MAE/MAPE, risk skoru, rota benzerligi]
-    C --> D{4. Kabul esikleri saglandi mi?}
+    B --> C[3. Compute metrics\nETA MAE/MAPE, risk score, route similarity]
+    C --> D{4. Do the acceptance thresholds pass?}
 
-    D -- Evet --> E[5. Parametre setini sabitle\nrelease + dokumantasyon]
-    D -- Hayir --> F[6. Parametreleri guncelle\nMOTOMAP_SPEED_FACTOR\nMOTOMAP_SEGMENT_DELAY_S\nroad/curve/grade cezalari]
+    D -- Yes --> E[5. Freeze parameter set\nrelease + documentation]
+    D -- No --> F[6. Update parameters\nMOTOMAP_SPEED_FACTOR\nMOTOMAP_SEGMENT_DELAY_S\nroad / curve / grade penalties]
 
-    F --> G[7. Regresyon testlerini calistir\nunit + senaryo eval]
+    F --> G[7. Run regression tests\nunit + scenario eval]
     G --> B
 
-    E --> H[8. Uretim izleme\nlatency, pass-rate, mod ayrisimi]
+    E --> H[8. Monitor production\nlatency, pass-rate, mode separation]
     H --> A
 ```
 
-Kisa not:
-- Dongu tek seferlik degil, surekli calisan bir kalite kontrol mekanizmasidir.
-- Ozellikle `speed_factor` ve `segment_delay` ETA kalibrasyonunda ilk oynanan parametrelerdir.
+Notes:
 
-## 4) Kisa Sozluk
+- This is a continuous quality loop, not a one-off exercise.
+- `speed_factor` and `segment_delay` are the first levers to tune when ETA drift appears.
 
-| Terim | Kisa aciklama |
+## 4. Short glossary
+
+| Term | Short explanation |
 |---|---|
-| OD (Origin-Destination) | Baslangic-varis nokta cifti. |
-| Edge | Yol grafındaki yonlu baglanti (yol parcasi). |
-| Grade | Yolun egim orani (pozitif: tirmanis, negatif: inis). |
-| Curvature | Yolun virajlilik seviyesi (aci/sekil degisimi). |
-| Baseline | Karsilastirma icin referans sistem veya rota sonucu. |
-| Calibration | Parametreleri gozleme gore ayarlama sureci. |
-| Evaluation | KPI metrikleriyle performans olcumu. |
-| KPI | Kaliteyi takip etmek icin secilen ana olcum gostergesi. |
+| OD (Origin-Destination) | A start and destination pair. |
+| Edge | A directed road connection in the graph. |
+| Grade | Road slope ratio. Positive for climbs, negative for descents. |
+| Curvature | How twisty a road is. |
+| Baseline | A reference system or route result used for comparison. |
+| Calibration | Adjusting parameters against observations. |
+| Evaluation | Measuring performance with explicit metrics. |
+| KPI | A tracked quality indicator. |

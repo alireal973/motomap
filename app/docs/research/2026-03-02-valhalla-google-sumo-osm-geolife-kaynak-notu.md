@@ -1,78 +1,81 @@
-# Valhalla, Google Route Modifiers, SUMO, OSM Traces, GeoLife - Kaynak Notu
+[![Language: English](https://img.shields.io/badge/Language-English-1f6feb)](2026-03-02-valhalla-google-sumo-osm-geolife-kaynak-notu.md)
+[![Language: Turkish](https://img.shields.io/badge/Language-Turkish-c92a2a)](2026-03-02-valhalla-google-sumo-osm-geolife-kaynak-notu.tr.md)
 
-Tarih: 2026-03-02
+# Valhalla, Google Route Modifiers, SUMO, OSM Traces, GeoLife - Source Note
 
-Bu not, rota/iz tabanli kalibrasyon calismasi icin resmi internet kaynaklarini tek yerde toplar.
+**Date:** 2026-03-02
 
-## 1) Hizli kaynak matrisi
+This note collects the main official internet sources for route- and trace-based calibration work in one place.
 
-| Konu | Pratik deger | Ana kaynak |
+## 1. Quick source matrix
+
+| Topic | Practical value | Main sources |
 |---|---|---|
-| Valhalla | OSM tabanli routing + map matching (`trace_route`, `trace_attributes`) | [Valhalla Docs](https://valhalla.github.io/valhalla/), [Map Matching API](https://valhalla.github.io/valhalla/api/map-matching/api-reference/), [Meili Algorithms](https://valhalla.github.io/valhalla/meili/algorithms/) |
+| Valhalla | OSM-based routing and map matching with `trace_route` and `trace_attributes` | [Valhalla Docs](https://valhalla.github.io/valhalla/), [Map Matching API](https://valhalla.github.io/valhalla/api/map-matching/api-reference/), [Meili Algorithms](https://valhalla.github.io/valhalla/meili/algorithms/) |
 | Google Route Modifiers | `avoidTolls`, `avoidHighways`, `avoidFerries`, `avoidIndoor`, `vehicleInfo`, `tollPasses` | [Route modifiers guide](https://developers.google.com/maps/documentation/routes/route-modifiers), [RouteModifiers reference](https://developers.google.com/maps/documentation/routes/reference/rest/v2/RouteModifiers) |
-| SUMO | Mikroskobik simulasyon, yeniden rota, kalibrator ile akis/hiz uyarlama | [SUMO Docs](https://sumo.dlr.de/docs/index.html), [Routing](https://sumo.dlr.de/docs/Simulation/Routing.html), [Calibrator](https://sumo.dlr.de/docs/Simulation/Calibrator.html) |
-| OSM traces | GPX iz noktasi alma/yukleme + gizlilik semantigi | [API v0.6](https://wiki.openstreetmap.org/wiki/API_v0.6), [Visibility of GPS traces](https://wiki.openstreetmap.org/wiki/Visibility_of_GPS_traces) |
-| GeoLife | Gercek dunya GPS trajeleri ile kalibrasyon/benchmark veri seti | [GeoLife User Guide](https://www.microsoft.com/en-us/research/publication/geolife-gps-trajectory-dataset-user-guide/), [GeoLife service paper](https://www.microsoft.com/en-us/research/publication/geolife-a-collaborative-social-networking-service-among-user-location-and-trajectory/) |
+| SUMO | Microscopic traffic simulation, re-routing, and calibrators for flow and speed tuning | [SUMO Docs](https://sumo.dlr.de/docs/index.html), [Routing](https://sumo.dlr.de/docs/Simulation/Routing.html), [Calibrator](https://sumo.dlr.de/docs/Simulation/Calibrator.html) |
+| OSM traces | GPX trace retrieval/upload and privacy semantics | [API v0.6](https://wiki.openstreetmap.org/wiki/API_v0.6), [Visibility of GPS traces](https://wiki.openstreetmap.org/wiki/Visibility_of_GPS_traces) |
+| GeoLife | Real-world GPS trajectories for calibration and benchmarking | [GeoLife User Guide](https://www.microsoft.com/en-us/research/publication/geolife-gps-trajectory-dataset-user-guide/), [GeoLife service paper](https://www.microsoft.com/en-us/research/publication/geolife-a-collaborative-social-networking-service-among-user-location-and-trajectory/) |
 
-## 2) Uctan uca akis (oneri)
+## 2. End-to-end flow proposal
 
 ```mermaid
 flowchart LR
-  A[OSM Agi + OSM GPX Trace] --> B[Valhalla Tile/Route Servisi]
-  C[GeoLife Trajeleri] --> D[Trace On-Isleme]
-  D --> E[Valhalla Map Matching]
+  A[OSM graph plus OSM GPX traces] --> B[Valhalla tile and route service]
+  C[GeoLife trajectories] --> D[Trace preprocessing]
+  D --> E[Valhalla map matching]
   B --> E
-  E --> F[Referans Rota Ozellikleri]
-  F --> G[SUMO Senaryo ve Rotalama]
-  G --> H[Simulasyon Ciktilari]
-  H --> I[Kalibrasyon Amac Fonksiyonu]
-  I --> J[Parametre Guncelleme]
+  E --> F[Reference route features]
+  F --> G[SUMO scenarios and routing]
+  G --> H[Simulation outputs]
+  H --> I[Calibration objective function]
+  I --> J[Parameter update]
   J --> E
   J --> G
 ```
 
-## 3) Google routeModifiers karar akisi
+## 3. Google `routeModifiers` decision flow
 
 ```mermaid
 flowchart TD
-  R[computeRoutes istegi] --> M{routeModifiers var mi?}
-  M -- Hayir --> N[Varsayilan rota]
-  M -- Evet --> X{Modifier tipi}
+  R[computeRoutes request] --> M{Are route modifiers present?}
+  M -- No --> N[Default route]
+  M -- Yes --> X{Modifier type}
   X --> X1[avoidTolls]
   X --> X2[avoidHighways]
   X --> X3[avoidFerries]
   X --> X4[avoidIndoor]
-  X --> X5[vehicleInfo + tollPasses]
-  X1 --> Y[Biasli rota aramasi]
+  X --> X5[vehicleInfo plus tollPasses]
+  X1 --> Y[Biased route search]
   X2 --> Y
   X3 --> Y
   X4 --> Y
   X5 --> Y
-  Y --> Z[Sonuc: kacinma tercihi, garanti degil]
+  Y --> Z[Result: avoidance preference, not a hard guarantee]
 ```
 
-Not: Google dokumani acikca "modifier sonucu biaslar, kesin engelleme garanti etmez" ve "Compute Route Matrix bu kacinma ozelligini desteklemez" diyor.
+Google's documentation explicitly states that modifiers bias the result rather than enforcing an absolute exclusion, and that the Route Matrix endpoint does not support these avoidance modifiers.
 
-## 4) Kalibrasyon dongusu
+## 4. Calibration loop
 
 ```mermaid
 sequenceDiagram
-  participant O as OSM/GeoLife Gozlem
-  participant V as Valhalla Matcher
+  participant O as OSM / GeoLife observations
+  participant V as Valhalla matcher
   participant S as SUMO
-  participant K as Kalibrator/Optimizasyon
+  participant K as Calibrator / optimizer
 
-  O->>V: GPS noktalarini eslestir
-  V-->>K: Eslesen yol dizisi + ozellikler
-  K->>S: Parametre seti theta
-  S-->>K: Hiz/akis/seyahat suresi ciktilari
-  K->>K: J(theta) hesapla
-  K-->>S: Yeni theta (iterasyon)
+  O->>V: map-match GPS points
+  V-->>K: matched road sequence plus attributes
+  K->>S: parameter set theta
+  S-->>K: speed, flow, and travel-time outputs
+  K->>K: compute J(theta)
+  K-->>S: updated theta
 ```
 
-## 5) Kalibrasyon amac fonksiyonu (LaTeX)
+## 5. Calibration objective function
 
-Toplam kayip:
+Total loss:
 
 $$
 \min_{\theta} J(\theta)=
@@ -83,46 +86,46 @@ w_t \cdot \frac{1}{N}\sum_{i=1}^{N}\frac{|T_i^{sim}(\theta)-T_i^{obs}|}{\sigma_T
 + \lambda \|\theta-\theta_0\|_2^2
 $$
 
-Agirlik kisiti:
+Weight constraint:
 
 $$
 \sum_{k\in\{t,v,m,r\}} w_k = 1,\quad w_k \ge 0
 $$
 
-Map-matching tarafini negatif log-olasilikla da izlemek istenirse:
+If map matching should also be tracked through negative log-likelihood:
 
 $$
 \mathcal{L}_{mm}(\theta) = -\sum_{j=1}^{M}\log p(s_j \mid z_j;\theta)
 $$
 
-## 6) Olcut tablosu
+## 6. Measurement table
 
-| Olcut | Formul/olcum | Veri kaynagi | Yorum |
+| Metric | Formula / measurement | Data source | Interpretation |
 |---|---|---|---|
-| Seyahat suresi hatasi | MAE veya MAPE | SUMO cikti vs gozlem | Ilk seviye KPI |
-| Akis hatasi | \|Q_sim - Q_obs\| | SUMO calibrator/hedef akis | Kalibratorla dogrudan bagli |
-| Map-matching kalitesi | F1, path overlap | Valhalla `trace_route`/`trace_attributes` | `gps_accuracy`, `search_radius` etkili |
-| Rota dagilimi uyumu | KL divergence | Gozlenen rota secimleri vs simulasyon | Davranissal uyum |
+| Travel-time error | MAE or MAPE | SUMO output vs observation | first-line KPI |
+| Flow error | \|Q_sim - Q_obs\| | SUMO calibrator or target flows | directly tied to the calibrator |
+| Map-matching quality | F1, path overlap | Valhalla `trace_route` / `trace_attributes` | sensitive to `gps_accuracy` and `search_radius` |
+| Route-distribution fit | KL divergence | observed route choices vs simulation | behavioral fit |
 
-## 7) Kisa teknik notlar
+## 7. Short technical notes
 
-- Valhalla: `shape_match` parametresi `edge_walk`, `map_snap`, `walk_or_snap` secenekleri verir. Gercek GPS izi icin genelde `map_snap`/`walk_or_snap` daha guvenli.
-- Google route modifiers: Kacinma alanlari maliyet fonksiyonunu yonlendirir; alternatif yoksa istenmeyen oge yine rotada kalabilir.
-- SUMO: Varsayilan hedef en dusuk seyahat suresi; `--weights.priority-factor` ve yeniden rota kipleriyle davranis degistirilebilir.
-- SUMO calibrator: `vehsPerHour`, `speed`, `jamThreshold` ile akis/hiz dinamik ayari yapar; olcum tabanli senaryo dengelemede kullanisli.
-- OSM traces API: `GET /api/0.6/trackpoints` bbox + sayfalama ile nokta ceker; `POST /api/0.6/gpx` yukleme yapar; gizlilik modlari (private/public/trackable/identifiable) farkli veri gorunurlugu saglar.
-- GeoLife: Kullanici sayisi, toplam mesafe/sure ve yogun ornekleme orani nedeniyle kalibrasyon ve benchmark icin guclu bir referans set.
+- Valhalla: `shape_match` supports `edge_walk`, `map_snap`, and `walk_or_snap`. For real GPS traces, `map_snap` or `walk_or_snap` is usually safer.
+- Google route modifiers: avoidance settings steer the cost function, but the undesired feature can still remain in the route if no practical alternative exists.
+- SUMO: the default objective is lowest travel time. `--weights.priority-factor` and rerouting modes can shift behavior.
+- SUMO calibrator: `vehsPerHour`, `speed`, and `jamThreshold` are useful for flow and speed tuning in observation-driven scenarios.
+- OSM traces API: `GET /api/0.6/trackpoints` retrieves points through bbox and pagination, `POST /api/0.6/gpx` uploads traces, and privacy modes change visibility.
+- GeoLife: strong benchmark source because of user count, total distance and duration, and dense sampling.
 
-## 8) TODO
+## 8. TODO
 
-- [ ] Valhalla `trace_route` ile pilot bir alan icin eslesme kalitesi raporu cikar.
-- [ ] Google `routeModifiers` etkisini ayni OD ciftlerinde varyantli test et.
-- [ ] SUMO calibrator parametre araliklarini (`vehsPerHour`, `speed`, `jamThreshold`) grid-search ile tara.
-- [ ] OSM trace gizlilik tipine gore kullanilabilir veri setini ayristir.
-- [ ] GeoLife alt-kumesi secip train/validation/test bolumu tanimla.
-- [ ] Amac fonksiyonundaki agirliklari (`w_t,w_v,w_m,w_r`) ilk iterasyonda normalize et.
+- [ ] Produce a pilot map-matching quality report with Valhalla `trace_route`.
+- [ ] Test Google `routeModifiers` variants on the same OD pairs.
+- [ ] Sweep SUMO calibrator ranges (`vehsPerHour`, `speed`, `jamThreshold`) with grid search.
+- [ ] Separate usable OSM trace datasets by privacy type.
+- [ ] Select a GeoLife subset and define train/validation/test partitions.
+- [ ] Normalize the initial objective-function weights (`w_t,w_v,w_m,w_r`).
 
-## 9) Internet kaynaklari
+## 9. Internet sources
 
 1. Valhalla Docs: https://valhalla.github.io/valhalla/
 2. Valhalla Map Matching API: https://valhalla.github.io/valhalla/api/map-matching/api-reference/

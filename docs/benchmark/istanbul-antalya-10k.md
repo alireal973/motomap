@@ -1,65 +1,80 @@
-# İstanbul-Antalya 10K Benchmark
+[![Language: English](https://img.shields.io/badge/Language-English-1f6feb)](istanbul-antalya-10k.md)
+[![Language: Turkish](https://img.shields.io/badge/Language-Turkish-c92a2a)](istanbul-antalya-10k.tr.md)
 
-## Amaç
-Bu benchmark'ın hedefi, uzun mesafede (İstanbul bölgesi -> Antalya bölgesi) üç motoru karşılaştırmaktır:
+# Istanbul-Antalya 10K Benchmark
+
+## Purpose
+
+This benchmark compares three routing engines on a long-distance corridor from the Istanbul region to the Antalya region:
 
 - Google Directions API
 - Valhalla
-- MotoMap algoritması
+- MotoMap
 
-Ana odak:
+Primary evaluation focus:
 
-- Mesafe ve süre farkları
-- Google'a göre oranlar (ratio)
-- Google'a göre hata yüzdeleri (APE, MAPE)
-- Büyük örneklemde (10.000 case) stabilite
+- distance and duration deltas
+- ratios relative to Google
+- absolute percentage error metrics (APE, MAPE)
+- stability across a large sample size of 10,000 cases
 
 ## Pipeline
 
 ```mermaid
 flowchart TD
-    A[CLI Parametreleri] --> B[Koridor Grafı Yükle/Oluştur]
-    B --> C[O-D Pair Yükle veya Üret]
-    C --> D[Resume Durumunu Oku]
-    D --> E[Her Case İçin Çalıştır]
+    A[CLI arguments] --> B[Load or build corridor graph]
+    B --> C[Load or generate OD pairs]
+    C --> D[Read resume state]
+    D --> E[Execute each case]
     E --> F[Google]
     E --> G[Valhalla]
     E --> H[MotoMap]
-    F --> I[Mesafe/Süre Normalize]
+    F --> I[Normalize distance and duration]
     G --> I
     H --> I
-    I --> J[Google'a Göre Ratio + APE]
-    J --> K[results.jsonl Satırı Yaz]
-    K --> L[Tüm Case Özet İstatistikleri]
-    L --> M[summary.json]
+    I --> J[Compute Google ratios and APE]
+    J --> K[Write results.jsonl row]
+    K --> L[Aggregate summary statistics]
+    L --> M[Write summary.json]
 ```
 
-## Çıktılar
+## Outputs
 
-- Pair dosyası: `--pairs-json`
-- Satır bazlı sonuçlar (resume dostu): `--results-jsonl`
-- Özet rapor: `--summary-json`
-- Koridor graph cache: `--graph-cache`
+- pair file: `--pairs-json`
+- row-level resumable results: `--results-jsonl`
+- summary report: `--summary-json`
+- cached corridor graph: `--graph-cache`
 
-## Metrikler
+## Metrics
 
-Google referans alınır:
+Google is treated as the reference:
 
 - `distance_ratio = engine_distance / google_distance`
 - `duration_ratio = engine_duration / google_duration`
 - `distance_ape_pct = |engine_distance - google_distance| / google_distance * 100`
 - `duration_ape_pct = |engine_duration - google_duration| / google_duration * 100`
 
-Yorum:
+Interpretation:
 
-- `ratio = 1.0` -> referansla aynı
-- `ratio > 1.0` -> daha uzun
-- `ratio < 1.0` -> daha kısa
-- APE/MAPE düşükse Google'a yakınlık artar
+- `ratio = 1.0` means identical to the reference
+- `ratio > 1.0` means longer than the reference
+- `ratio < 1.0` means shorter than the reference
+- lower APE/MAPE means closer agreement with Google
 
-## Komutlar
+## Commands
 
-### Dry-run (sadece hazırlık + özet)
+### Build the C++ sampler (optional)
+
+The `embeddings` directory contains a C++ O-D sampler. The benchmark script tries to compile it automatically, but you can build it manually with:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File embeddings/build_od_sampler.ps1
+```
+
+### Dry run
+
+Preparation plus summary only:
+
 ```bash
 python website/benchmark_istanbul_antalya_10k.py \
   --count 10000 \
@@ -70,7 +85,20 @@ python website/benchmark_istanbul_antalya_10k.py \
   --graph-cache website/cache/ia_corridor.graphml
 ```
 
-### Smoke (10 case)
+Force the Python sampler:
+
+```bash
+python website/benchmark_istanbul_antalya_10k.py --disable-cpp-sampler --dry-run
+```
+
+Force the C++ sampler:
+
+```bash
+python website/benchmark_istanbul_antalya_10k.py --force-cpp-sampler --dry-run
+```
+
+### Smoke run
+
 ```bash
 python website/benchmark_istanbul_antalya_10k.py \
   --count 10 \
@@ -81,7 +109,8 @@ python website/benchmark_istanbul_antalya_10k.py \
   --graph-cache website/cache/ia_smoke.graphml
 ```
 
-### Full (10.000 case)
+### Full run
+
 ```bash
 python website/benchmark_istanbul_antalya_10k.py \
   --count 10000 \
@@ -94,12 +123,15 @@ python website/benchmark_istanbul_antalya_10k.py \
   --valhalla-qps 2
 ```
 
-### Resume (kaldığı yerden devam)
-Aynı `--pairs-json` ve `--results-jsonl` ile komutu tekrar çalıştırın. Script, tamamlanan `case_id` kayıtlarını atlar.
+### Resume
 
-## Pratik Notlar
+Re-run the command with the same `--pairs-json` and `--results-jsonl`. The script skips completed `case_id` entries automatically.
 
-- 10.000 Google çağrısı maliyetlidir; önce smoke koşusu önerilir.
-- Public Valhalla servislerinde hız ve erişim dalgalanabilir.
-- QPS değerlerini düşük başlayıp kademeli artırmak daha güvenlidir.
-- Uzun koşularda `results.jsonl` dosyası resume için kritik artefakttır.
+## Practical Notes
+
+- 10,000 Google calls are expensive; run a smoke test first.
+- Public Valhalla services can fluctuate in latency and availability.
+- Start with conservative QPS values and increase them gradually.
+- `results.jsonl` is the critical artifact for long resumable runs.
+- If you use MinGW inside a Conda environment, DLL conflicts can appear. The script reduces this risk by pushing the `g++` directory to the front of `PATH`.
+- Sampler selection is automatic by default: Python is preferred for small and medium batches, while C++ is tried for very large batches. Above the threshold, the script runs a short micro-benchmark and picks the faster option.
