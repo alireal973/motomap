@@ -3,816 +3,272 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MotoMap — Smart Route Planning for Motorcycle Riders</title>
+  <title>MotoMap -- Smart Route Planning for Motorcycle Riders</title>
   <meta name="description" content="MotoMap builds curvy, scenic, and safe routes optimized for motorcycles. Open-source routing powered by traffic flow theory and real-time data." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <style>
-    :root {
-      --bg-deep: #050A12;
-      --bg-primary: #0A1220;
-      --bg-elevated: #0F1A2E;
-      --bg-card: rgba(255,255,255,0.03);
-      --bg-card-hover: rgba(255,255,255,0.06);
-      --border: rgba(255,255,255,0.06);
-      --border-hover: rgba(255,255,255,0.12);
-      --accent: #3B82F6;
-      --accent-dim: rgba(59,130,246,0.15);
-      --cyan: #22D3EE;
-      --cyan-dim: rgba(34,211,238,0.12);
-      --orange: #F97316;
-      --orange-dim: rgba(249,115,22,0.12);
-      --green: #22C55E;
-      --green-dim: rgba(34,197,94,0.12);
-      --purple: #A78BFA;
-      --purple-dim: rgba(167,139,250,0.12);
-      --text: #E8ECF4;
-      --text-secondary: rgba(255,255,255,0.55);
-      --text-muted: rgba(255,255,255,0.30);
-      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-      --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
-      --nav-h: 64px;
-      --max-w: 1120px;
+    :root{
+      --bg:#050A12;--bg2:#0A1220;--bg3:#0F1A2E;
+      --card:rgba(255,255,255,.03);--card-h:rgba(255,255,255,.06);
+      --bdr:rgba(255,255,255,.06);--bdr-h:rgba(255,255,255,.12);
+      --accent:#3B82F6;--accent-d:rgba(59,130,246,.15);
+      --cyan:#22D3EE;--cyan-d:rgba(34,211,238,.12);
+      --orange:#F97316;--orange-d:rgba(249,115,22,.12);
+      --green:#22C55E;--green-d:rgba(34,197,94,.12);
+      --purple:#A78BFA;--purple-d:rgba(167,139,250,.12);
+      --t:#E8ECF4;--t2:rgba(255,255,255,.55);--t3:rgba(255,255,255,.30);
+      --sans:'Inter',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+      --mono:'JetBrains Mono','Fira Code',monospace;
+      --nav:64px;--mw:1120px;
     }
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+    html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased}
+    body{font-family:var(--sans);background:var(--bg);color:var(--t);line-height:1.6;overflow-x:hidden}
+    .c{max-width:var(--mw);margin:0 auto;padding:0 24px}
 
-    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-    html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
-
-    body {
-      font-family: var(--font-sans);
-      background: var(--bg-deep);
-      color: var(--text);
-      line-height: 1.6;
-      overflow-x: hidden;
-    }
-
-    /* ---- UTILITY ---- */
-    .container { max-width: var(--max-w); margin: 0 auto; padding: 0 24px; }
-    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
-
-    /* ---- REVEAL ANIMATION ---- */
-    .reveal {
-      opacity: 0;
-      transform: translateY(32px);
-      transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .reveal.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
-    .reveal-delay-1 { transition-delay: 0.1s; }
-    .reveal-delay-2 { transition-delay: 0.2s; }
-    .reveal-delay-3 { transition-delay: 0.3s; }
+    /* ---- REVEAL ---- */
+    .r{opacity:0;transform:translateY(28px);transition:opacity .7s cubic-bezier(.16,1,.3,1),transform .7s cubic-bezier(.16,1,.3,1)}
+    .r.v{opacity:1;transform:translateY(0)}
+    .rd1{transition-delay:.1s}.rd2{transition-delay:.2s}.rd3{transition-delay:.3s}
 
     /* ---- NAV ---- */
-    .nav {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
-      height: var(--nav-h);
-      display: flex; align-items: center;
-      background: rgba(5,10,18,0.80);
-      backdrop-filter: blur(16px) saturate(180%);
-      -webkit-backdrop-filter: blur(16px) saturate(180%);
-      border-bottom: 1px solid var(--border);
-    }
-    .nav .container {
-      display: flex; align-items: center; justify-content: space-between; width: 100%;
-    }
-    .nav-brand {
-      display: flex; align-items: center; gap: 10px;
-      text-decoration: none; color: var(--text);
-    }
-    .nav-logo {
-      height: 28px; width: auto;
-    }
-    .nav-wordmark {
-      font-size: 17px; font-weight: 800; letter-spacing: 1.2px;
-    }
-    .nav-links {
-      display: flex; align-items: center; gap: 32px; list-style: none;
-    }
-    .nav-links a {
-      color: var(--text-secondary); text-decoration: none;
-      font-size: 13.5px; font-weight: 500; letter-spacing: 0.2px;
-      transition: color 0.2s;
-    }
-    .nav-links a:hover { color: var(--text); }
-    .nav-cta {
-      padding: 8px 20px;
-      background: var(--text);
-      color: var(--bg-deep) !important;
-      border-radius: 8px;
-      font-weight: 700 !important;
-      font-size: 13px !important;
-      transition: opacity 0.2s;
-    }
-    .nav-cta:hover { opacity: 0.9; }
-
-    /* Mobile menu */
-    .nav-toggle {
-      display: none; background: none; border: none; cursor: pointer; padding: 8px;
-    }
-    .nav-toggle svg { display: block; }
+    .nav{position:fixed;top:0;left:0;right:0;z-index:1000;height:var(--nav);display:flex;align-items:center;background:rgba(5,10,18,.78);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border-bottom:1px solid var(--bdr)}
+    .nav .c{display:flex;align-items:center;justify-content:space-between;width:100%}
+    .nav-b{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--t)}
+    .nav-b img{height:26px;width:auto}
+    .nav-wm{font-size:18px;font-weight:900;letter-spacing:2.5px;background:linear-gradient(135deg,#fff 0%,rgba(255,255,255,.7) 40%,var(--accent) 60%,var(--cyan) 100%);background-size:200% 200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:wm-shift 6s ease-in-out infinite}
+    @keyframes wm-shift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+    .nl{display:flex;align-items:center;gap:28px;list-style:none}
+    .nl a{color:var(--t2);text-decoration:none;font-size:13px;font-weight:500;transition:color .2s;letter-spacing:.2px}
+    .nl a:hover,.nl a.on{color:var(--t)}
+    .nl .cta{padding:7px 18px;background:var(--t);color:var(--bg)!important;border-radius:8px;font-weight:700!important;font-size:12.5px!important}
+    .nl .cta:hover{opacity:.9}
+    .mt{display:none;background:none;border:none;cursor:pointer;padding:8px}.mt svg{display:block}
 
     /* ---- HERO ---- */
-    .hero {
-      position: relative;
-      min-height: 100vh;
-      display: flex; align-items: center;
-      padding: calc(var(--nav-h) + 80px) 0 100px;
-      overflow: hidden;
-    }
-    .hero .container {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 64px;
-      align-items: center;
-    }
-    .hero-content { position: relative; z-index: 2; }
-    .hero-eyebrow {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 6px 14px 6px 8px;
-      border-radius: 100px;
-      border: 1px solid var(--border);
-      background: var(--bg-card);
-      font-size: 12px; font-weight: 600; color: var(--text-secondary);
-      margin-bottom: 28px;
-    }
-    .hero-eyebrow-dot {
-      width: 7px; height: 7px; border-radius: 50%;
-      background: var(--green);
-      box-shadow: 0 0 8px var(--green);
-    }
-    .hero h1 {
-      font-size: clamp(36px, 5vw, 60px);
-      font-weight: 900;
-      line-height: 1.08;
-      letter-spacing: -1.5px;
-      margin-bottom: 20px;
-    }
-    .hero .gradient-text {
-      background: linear-gradient(135deg, var(--accent) 0%, var(--cyan) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    .hero-desc {
-      font-size: 16px; color: var(--text-secondary);
-      max-width: 440px; line-height: 1.7;
-      margin-bottom: 36px;
-    }
-    .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
-    .btn {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 14px 28px; border-radius: 10px;
-      font-size: 14px; font-weight: 700; text-decoration: none;
-      transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
-      cursor: pointer; border: none;
-    }
-    .btn-primary {
-      background: var(--accent); color: #fff;
-      box-shadow: 0 4px 24px rgba(59,130,246,0.25);
-    }
-    .btn-primary:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 8px 32px rgba(59,130,246,0.35);
-    }
-    .btn-ghost {
-      background: transparent; color: var(--text-secondary);
-      border: 1px solid var(--border);
-    }
-    .btn-ghost:hover {
-      background: var(--bg-card); color: var(--text);
-      border-color: var(--border-hover);
-    }
-    .btn svg { width: 16px; height: 16px; }
+    .hero{position:relative;min-height:100vh;display:flex;align-items:center;padding:calc(var(--nav) + 80px) 0 100px;overflow:hidden}
+    .hero::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");opacity:.03;pointer-events:none;z-index:1}
+    .hero::after{content:'';position:absolute;top:-1px;left:15%;right:15%;height:1px;background:linear-gradient(90deg,transparent,var(--accent),var(--cyan),transparent);z-index:2}
+    .hero .c{display:flex;flex-direction:column;align-items:center;text-align:center;position:relative;z-index:3}
 
-    /* Hero road visualization */
-    .hero-visual {
-      position: relative; width: 100%; height: 420px;
-    }
-    .road-svg { width: 100%; height: 100%; }
-    .road-line {
-      fill: none; stroke-width: 1.5;
-      stroke-linecap: round;
-    }
-    .road-line-bg { stroke: rgba(255,255,255,0.04); stroke-width: 2; }
-    .road-dot {
-      r: 4; fill: var(--bg-deep); stroke-width: 1.5;
-    }
-    .road-dot-active {
-      r: 5; stroke-width: 0;
-    }
-    .road-pulse {
-      r: 5; fill: none; stroke-width: 1;
-      animation: pulse-ring 2s ease-out infinite;
-    }
-    @keyframes pulse-ring {
-      0% { r: 5; opacity: 0.6; }
-      100% { r: 18; opacity: 0; }
-    }
-    @keyframes dot-move {
-      0% { offset-distance: 0%; opacity: 0; }
-      5% { opacity: 1; }
-      95% { opacity: 1; }
-      100% { offset-distance: 100%; opacity: 0; }
-    }
-    .moving-dot {
-      width: 6px; height: 6px; border-radius: 50%;
-      position: absolute;
-      offset-rotate: 0deg;
-      animation: dot-move 6s linear infinite;
-    }
+    /* Gradient orbs */
+    .orb{position:absolute;border-radius:50%;pointer-events:none;filter:blur(100px)}
+    .orb-1{top:5%;right:-8%;width:500px;height:500px;background:radial-gradient(circle,rgba(59,130,246,.12),transparent 70%);animation:orb-float 8s ease-in-out infinite}
+    .orb-2{bottom:-5%;left:20%;width:400px;height:400px;background:radial-gradient(circle,rgba(34,211,238,.08),transparent 70%);animation:orb-float 10s ease-in-out infinite reverse}
+    .orb-3{top:40%;left:-10%;width:350px;height:350px;background:radial-gradient(circle,rgba(167,139,250,.06),transparent 70%);animation:orb-float 12s ease-in-out infinite 2s}
+    @keyframes orb-float{0%,100%{transform:translate(0,0)}50%{transform:translate(20px,-30px)}}
 
-    /* Glow effects */
-    .hero-glow {
-      position: absolute; border-radius: 50%;
-      pointer-events: none; filter: blur(80px);
-    }
-    .hero-glow-1 {
-      top: 10%; right: -5%; width: 400px; height: 400px;
-      background: rgba(59,130,246,0.08);
-    }
-    .hero-glow-2 {
-      bottom: 0; left: 30%; width: 300px; height: 300px;
-      background: rgba(34,211,238,0.05);
-    }
+    .hero-c{position:relative;z-index:2}
+    .badge{display:inline-flex;align-items:center;gap:8px;padding:5px 14px 5px 7px;border-radius:100px;border:1px solid var(--bdr);background:var(--card);font-size:11.5px;font-weight:600;color:var(--t2);margin-bottom:28px}
+    .badge-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
+    .hero h1{font-size:clamp(38px,5.2vw,64px);font-weight:900;line-height:1.06;letter-spacing:-2px;margin-bottom:20px}
+    .grad{background:linear-gradient(135deg,var(--accent),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .hero-p{font-size:17px;color:var(--t2);max-width:560px;line-height:1.75;margin-bottom:36px;margin-left:auto;margin-right:auto}
+    .hero-a{display:flex;gap:12px;flex-wrap:wrap}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:13px 26px;border-radius:10px;font-size:13.5px;font-weight:700;text-decoration:none;transition:transform .2s,box-shadow .2s,background .2s;cursor:pointer;border:none;font-family:var(--sans)}
+    .btn-p{background:var(--accent);color:#fff;box-shadow:0 4px 24px rgba(59,130,246,.25)}
+    .btn-p:hover{transform:translateY(-1px);box-shadow:0 8px 32px rgba(59,130,246,.35)}
+    .btn-g{background:transparent;color:var(--t2);border:1px solid var(--bdr)}
+    .btn-g:hover{background:var(--card);color:var(--t);border-color:var(--bdr-h)}
+    .btn svg{width:16px;height:16px}
 
-    /* ---- METRICS BAR ---- */
-    .metrics {
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-      padding: 40px 0;
-    }
-    .metrics .container {
-      display: flex; justify-content: space-between;
-      flex-wrap: wrap; gap: 32px;
-    }
-    .metric {
-      flex: 1; min-width: 120px; text-align: center;
-    }
-    .metric-value {
-      font-size: 32px; font-weight: 900; letter-spacing: -1px;
-      font-family: var(--font-mono);
-    }
-    .metric-value.blue { color: var(--accent); }
-    .metric-value.cyan { color: var(--cyan); }
-    .metric-value.orange { color: var(--orange); }
-    .metric-value.green { color: var(--green); }
-    .metric-label {
-      font-size: 12px; color: var(--text-muted);
-      letter-spacing: 0.5px; margin-top: 4px;
-    }
+    /* Hero floating cards */
+    .hero-cards{display:flex;gap:14px;margin-top:48px;flex-wrap:wrap;justify-content:center}
+    .hc{padding:14px 22px;border-radius:12px;border:1px solid var(--bdr);background:rgba(10,18,32,.6);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);display:flex;align-items:center;gap:12px;opacity:0;animation:hc-in .6s ease forwards}
+    .hc:nth-child(1){animation-delay:1s}.hc:nth-child(2){animation-delay:1.2s}.hc:nth-child(3){animation-delay:1.4s}.hc:nth-child(4){animation-delay:1.6s}
+    @keyframes hc-in{to{opacity:1;transform:translateY(0)}}
+    .hc{transform:translateY(12px)}
+    .hc-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+    .hc-l{font-size:11px;color:var(--t3);font-weight:600;letter-spacing:1px;text-transform:uppercase}
+    .hc-v{font-size:14px;font-weight:800;font-family:var(--mono)}
 
     /* ---- SECTION ---- */
-    .section { padding: 100px 0; }
-    .section-header {
-      text-align: center; max-width: 580px; margin: 0 auto 60px;
-    }
-    .section-eyebrow {
-      display: inline-flex; align-items: center; gap: 6px;
-      font-size: 11px; font-weight: 700;
-      letter-spacing: 2px; text-transform: uppercase;
-      color: var(--cyan); margin-bottom: 16px;
-    }
-    .section-eyebrow::before {
-      content: ''; width: 16px; height: 1px;
-      background: var(--cyan);
-    }
-    .section-title {
-      font-size: clamp(26px, 3.5vw, 40px);
-      font-weight: 900; letter-spacing: -0.8px;
-      margin-bottom: 14px;
-    }
-    .section-desc {
-      font-size: 15px; color: var(--text-secondary); line-height: 1.75;
-    }
+    .sec{padding:100px 0}
+    .sec-h{text-align:center;max-width:580px;margin:0 auto 60px}
+    .sec-e{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--cyan);margin-bottom:16px}
+    .sec-e::before{content:'';width:16px;height:1px;background:var(--cyan)}
+    .sec-t{font-size:clamp(26px,3.5vw,40px);font-weight:900;letter-spacing:-.8px;margin-bottom:14px}
+    .sec-d{font-size:15px;color:var(--t2);line-height:1.75}
+    .sec-alt{background:var(--bg2)}
 
-    /* ---- BENTO FEATURES ---- */
-    .bento {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      grid-template-rows: auto auto;
-      gap: 16px;
-    }
-    .bento-card {
-      padding: 32px 28px;
-      border-radius: 16px;
-      border: 1px solid var(--border);
-      background: var(--bg-card);
-      transition: border-color 0.3s, background 0.3s, transform 0.3s;
-      position: relative; overflow: hidden;
-    }
-    .bento-card:hover {
-      border-color: var(--border-hover);
-      background: var(--bg-card-hover);
-      transform: translateY(-2px);
-    }
-    .bento-card.span-2 { grid-column: span 2; }
-    .bento-icon {
-      width: 40px; height: 40px; border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      margin-bottom: 18px;
-    }
-    .bento-icon svg { width: 20px; height: 20px; }
-    .bento-card h3 {
-      font-size: 16px; font-weight: 700; margin-bottom: 8px;
-    }
-    .bento-card p {
-      font-size: 13.5px; color: var(--text-secondary); line-height: 1.7;
-    }
+    /* ---- BENTO ---- */
+    .bento{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+    .bc{padding:32px 28px;border-radius:16px;border:1px solid var(--bdr);background:var(--card);transition:border-color .3s,background .3s,transform .3s;position:relative;overflow:hidden}
+    .bc:hover{border-color:var(--bdr-h);background:var(--card-h);transform:translateY(-2px)}
+    .bc.s2{grid-column:span 2}
+    .bi{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:18px}
+    .bi svg{width:20px;height:20px}
+    .bc h3{font-size:16px;font-weight:700;margin-bottom:8px}
+    .bc p{font-size:13.5px;color:var(--t2);line-height:1.7}
 
-    /* ---- HOW IT WORKS ---- */
-    .section-alt { background: var(--bg-primary); }
-    .steps-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr);
-      gap: 32px; position: relative;
-    }
-    .steps-grid::before {
-      content: '';
-      position: absolute; top: 40px; left: 16.66%; right: 16.66%;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, var(--border-hover), var(--border-hover), transparent);
-    }
-    .step-card { text-align: center; position: relative; }
-    .step-num {
-      width: 48px; height: 48px; border-radius: 12px;
-      display: flex; align-items: center; justify-content: center;
-      margin: 0 auto 20px;
-      font-size: 18px; font-weight: 800;
-      font-family: var(--font-mono);
-      background: var(--bg-elevated);
-      border: 1px solid var(--border-hover);
-      color: var(--accent);
-      position: relative; z-index: 1;
-    }
-    .step-card h3 {
-      font-size: 16px; font-weight: 700; margin-bottom: 8px;
-    }
-    .step-card p {
-      font-size: 13.5px; color: var(--text-secondary); line-height: 1.7;
-      max-width: 280px; margin: 0 auto;
-    }
+    /* ---- STEPS ---- */
+    .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:32px;position:relative}
+    .steps::before{content:'';position:absolute;top:40px;left:16.66%;right:16.66%;height:1px;background:linear-gradient(90deg,transparent,var(--bdr-h),var(--bdr-h),transparent)}
+    .step{text-align:center;position:relative}
+    .step-n{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:18px;font-weight:800;font-family:var(--mono);background:var(--bg3);border:1px solid var(--bdr-h);color:var(--accent);position:relative;z-index:1}
+    .step h3{font-size:16px;font-weight:700;margin-bottom:8px}
+    .step p{font-size:13.5px;color:var(--t2);line-height:1.7;max-width:280px;margin:0 auto}
 
-    /* ---- RIDING MODES ---- */
-    .modes-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
-    }
-    .mode-card {
-      padding: 36px 28px; border-radius: 16px;
-      border: 1px solid var(--border);
-      background: var(--bg-card);
-      text-align: center;
-      transition: border-color 0.3s, transform 0.3s;
-    }
-    .mode-card:hover {
-      border-color: var(--border-hover);
-      transform: translateY(-2px);
-    }
-    .mode-icon {
-      width: 56px; height: 56px; border-radius: 14px;
-      display: flex; align-items: center; justify-content: center;
-      margin: 0 auto 18px;
-    }
-    .mode-icon svg { width: 24px; height: 24px; }
-    .mode-card h3 {
-      font-size: 18px; font-weight: 800; margin-bottom: 8px;
-    }
-    .mode-card p {
-      font-size: 13.5px; color: var(--text-secondary); line-height: 1.7;
-    }
+    /* ---- MODES ---- */
+    .modes{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+    .mc{padding:36px 28px;border-radius:16px;border:1px solid var(--bdr);background:var(--card);text-align:center;transition:border-color .3s,transform .3s}
+    .mc:hover{border-color:var(--bdr-h);transform:translateY(-2px)}
+    .mi{width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 18px}
+    .mi svg{width:24px;height:24px}
+    .mc h3{font-size:18px;font-weight:800;margin-bottom:8px}
+    .mc p{font-size:13.5px;color:var(--t2);line-height:1.7}
 
-    /* ---- TECH STACK ---- */
-    .tech-grid {
-      display: flex; justify-content: center; flex-wrap: wrap; gap: 12px;
-    }
-    .tech-pill {
-      display: flex; align-items: center; gap: 8px;
-      padding: 10px 20px; border-radius: 10px;
-      border: 1px solid var(--border);
-      background: var(--bg-card);
-      font-size: 13px; font-weight: 600; color: var(--text-secondary);
-      transition: border-color 0.2s, color 0.2s;
-    }
-    .tech-pill:hover { border-color: var(--border-hover); color: var(--text); }
-    .tech-dot {
-      width: 6px; height: 6px; border-radius: 50%;
-    }
+    /* ---- TECH ---- */
+    .tg{display:flex;justify-content:center;flex-wrap:wrap;gap:12px}
+    .tp{display:flex;align-items:center;gap:8px;padding:10px 20px;border-radius:10px;border:1px solid var(--bdr);background:var(--card);font-size:13px;font-weight:600;color:var(--t2);transition:border-color .2s,color .2s}
+    .tp:hover{border-color:var(--bdr-h);color:var(--t)}
+    .td{width:6px;height:6px;border-radius:50%}
 
     /* ---- CTA ---- */
-    .cta-section { text-align: center; }
-    .cta-box {
-      max-width: 640px; margin: 0 auto;
-      padding: 64px 40px; border-radius: 20px;
-      border: 1px solid var(--border);
-      background: linear-gradient(180deg, var(--bg-card) 0%, rgba(59,130,246,0.04) 100%);
-      position: relative; overflow: hidden;
-    }
-    .cta-box::before {
-      content: '';
-      position: absolute; top: -1px; left: 20%; right: 20%;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, var(--accent), transparent);
-    }
-    .cta-box h2 {
-      font-size: clamp(26px, 3.5vw, 36px);
-      font-weight: 900; letter-spacing: -0.5px; margin-bottom: 12px;
-    }
-    .cta-box p {
-      font-size: 15px; color: var(--text-secondary); margin-bottom: 32px;
-    }
+    .cta-s{text-align:center}
+    .cta-b{max-width:640px;margin:0 auto;padding:64px 40px;border-radius:20px;border:1px solid var(--bdr);background:linear-gradient(180deg,var(--card) 0%,rgba(59,130,246,.04) 100%);position:relative;overflow:hidden}
+    .cta-b::before{content:'';position:absolute;top:-1px;left:20%;right:20%;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent)}
+    .cta-b h2{font-size:clamp(26px,3.5vw,36px);font-weight:900;letter-spacing:-.5px;margin-bottom:12px}
+    .cta-b p{font-size:15px;color:var(--t2);margin-bottom:32px}
 
     /* ---- FOOTER ---- */
-    .footer {
-      padding: 32px 0;
-      border-top: 1px solid var(--border);
-    }
-    .footer .container {
-      display: flex; justify-content: space-between;
-      align-items: center; flex-wrap: wrap; gap: 16px;
-    }
-    .footer-copy {
-      font-size: 12px; color: var(--text-muted);
-    }
-    .footer-links {
-      display: flex; gap: 24px; list-style: none;
-    }
-    .footer-links a {
-      font-size: 12px; color: var(--text-muted);
-      text-decoration: none; transition: color 0.2s;
-    }
-    .footer-links a:hover { color: var(--text-secondary); }
+    .ft{padding:32px 0;border-top:1px solid var(--bdr)}
+    .ft .c{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}
+    .ft-c{font-size:12px;color:var(--t3)}
+    .ft-l{display:flex;gap:24px;list-style:none}
+    .ft-l a{font-size:12px;color:var(--t3);text-decoration:none;transition:color .2s}
+    .ft-l a:hover{color:var(--t2)}
 
     /* ---- RESPONSIVE ---- */
-    @media (max-width: 1024px) {
-      .hero .container { grid-template-columns: 1fr; gap: 40px; }
-      .hero-visual { height: 300px; }
-      .bento { grid-template-columns: 1fr 1fr; }
-      .bento-card.span-2 { grid-column: span 2; }
+    @media(max-width:1024px){
+      .bento{grid-template-columns:1fr 1fr}.bc.s2{grid-column:span 2}
     }
-
-    @media (max-width: 768px) {
-      :root { --nav-h: 56px; }
-      .nav-links { display: none; }
-      .nav-links.open {
-        display: flex; flex-direction: column;
-        position: fixed; top: var(--nav-h); left: 0; right: 0;
-        background: rgba(5,10,18,0.95);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        padding: 24px;
-        border-bottom: 1px solid var(--border);
-        gap: 20px;
-      }
-      .nav-toggle { display: block; }
-      .hero { min-height: auto; padding: calc(var(--nav-h) + 48px) 0 64px; }
-      .hero-visual { height: 220px; }
-      .hero h1 { font-size: 32px; letter-spacing: -1px; }
-      .hero-desc { font-size: 15px; }
-      .section { padding: 64px 0; }
-      .bento { grid-template-columns: 1fr; }
-      .bento-card.span-2 { grid-column: span 1; }
-      .steps-grid { grid-template-columns: 1fr; gap: 24px; }
-      .steps-grid::before { display: none; }
-      .modes-grid { grid-template-columns: 1fr; }
-      .metrics .container { gap: 20px; }
-      .metric-value { font-size: 24px; }
-      .footer .container { flex-direction: column; text-align: center; }
-      .cta-box { padding: 40px 24px; }
+    @media(max-width:768px){
+      :root{--nav:56px}
+      .nl{display:none}
+      .nl.open{display:flex;flex-direction:column;position:fixed;top:var(--nav);left:0;right:0;background:rgba(5,10,18,.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);padding:24px;border-bottom:1px solid var(--bdr);gap:20px}
+      .mt{display:block}
+      .hero{min-height:auto;padding:calc(var(--nav) + 48px) 0 64px}
+      .hero h1{font-size:32px;letter-spacing:-1px}
+      .hero-cards{gap:8px}.hc{padding:10px 16px}.hc-l{font-size:10px}.hc-v{font-size:12px}
+      .sec{padding:64px 0}
+      .bento{grid-template-columns:1fr}.bc.s2{grid-column:span 1}
+      .steps{grid-template-columns:1fr;gap:24px}.steps::before{display:none}
+      .modes{grid-template-columns:1fr}
+      .ft .c{flex-direction:column;text-align:center}
+      .cta-b{padding:40px 24px}
     }
-
-    @media (max-width: 480px) {
-      .hero-actions { flex-direction: column; }
-      .btn { width: 100%; justify-content: center; }
+    @media(max-width:480px){
+      .hero-a{flex-direction:column}
+      .btn{width:100%;justify-content:center}
     }
   </style>
 </head>
 <body>
 
-<!-- NAV -->
-<nav class="nav">
-  <div class="container">
-    <a href="#" class="nav-brand">
-      <img class="nav-logo" src="assets/motomap-logo.svg" alt="MotoMap" />
-    </a>
-    <button class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')" aria-label="Menu">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 5h14M3 10h14M3 15h14" stroke="#E8ECF4" stroke-width="1.5" stroke-linecap="round"/></svg>
-    </button>
-    <ul class="nav-links">
-      <li><a href="#features">Features</a></li>
-      <li><a href="#how">How It Works</a></li>
-      <li><a href="#modes">Riding Modes</a></li>
-      <li><a href="releases.html">Releases</a></li>
-      <li><a href="https://github.com/alipasha03/motomap" class="nav-cta">GitHub</a></li>
-    </ul>
-  </div>
-</nav>
+<nav class="nav"><div class="c">
+  <a href="index.html" class="nav-b"><img src="assets/motomap-icon.svg" alt="MotoMap"/><span class="nav-wm">MOTOMAP</span></a>
+  <button class="mt" onclick="document.querySelector('.nl').classList.toggle('open')" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 5h14M3 10h14M3 15h14" stroke="#E8ECF4" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+  <ul class="nl">
+    <li><a href="index.html#features" class="on">Features</a></li>
+    <li><a href="index.html#how">How It Works</a></li>
+    <li><a href="index.html#modes">Riding Modes</a></li>
+    <li><a href="releases.html">Releases</a></li>
+    <li><a href="https://github.com/alipasha03/motomap" class="cta">GitHub</a></li>
+  </ul>
+</div></nav>
 
-<!-- HERO -->
 <section class="hero">
-  <div class="hero-glow hero-glow-1"></div>
-  <div class="hero-glow hero-glow-2"></div>
-  <div class="container">
-    <div class="hero-content">
-      <div class="hero-eyebrow reveal">
-        <span class="hero-eyebrow-dot"></span>
-        Open-source motorcycle routing
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+  <div class="c">
+    <div class="hero-c">
+      <div class="badge r"><span class="badge-dot"></span>Open-source motorcycle routing</div>
+      <h1 class="r rd1">Route Intelligence<br/>for <span class="grad">Motorcycle Riders</span></h1>
+      <p class="hero-p r rd2">Five-layer speed model. 20 surface types. BPR congestion analysis. Real-time ready architecture built on peer-reviewed research.</p>
+      <div class="hero-a r rd3">
+        <a href="https://github.com/alipasha03/motomap" class="btn btn-p"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>View on GitHub</a>
+        <a href="#features" class="btn btn-g">Explore Features<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6l4 4 4-4"/></svg></a>
       </div>
-      <h1 class="reveal reveal-delay-1">
-        Not Just Fast.<br/>
-        <span class="gradient-text">The Best Roads.</span>
-      </h1>
-      <p class="hero-desc reveal reveal-delay-2">
-        MotoMap builds curvy, scenic, and safe routes optimized for motorcycles.
-        Powered by traffic flow theory, surface analysis, and real-time data.
-      </p>
-      <div class="hero-actions reveal reveal-delay-3">
-        <a href="https://github.com/alipasha03/motomap" class="btn btn-primary">
-          <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
-          View on GitHub
-        </a>
-        <a href="#features" class="btn btn-ghost">
-          Learn more
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6l4 4 4-4"/></svg>
-        </a>
-      </div>
-    </div>
-
-    <!-- Road visualization (inspired by factory.ai pipeline) -->
-    <div class="hero-visual reveal reveal-delay-2">
-      <svg class="road-svg" viewBox="0 0 500 420" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
-        <!-- Road backgrounds -->
-        <path class="road-line-bg" d="M40 60 Q130 60 180 100 Q230 140 320 140 Q380 140 460 120"/>
-        <path class="road-line-bg" d="M40 160 Q100 160 160 180 Q220 200 300 200 Q380 200 460 180"/>
-        <path class="road-line-bg" d="M40 260 Q120 260 180 240 Q240 220 320 240 Q400 260 460 240"/>
-        <path class="road-line-bg" d="M40 340 Q140 340 200 360 Q260 380 340 360 Q420 340 460 350"/>
-
-        <!-- Active road lines -->
-        <path class="road-line" d="M40 60 Q130 60 180 100 Q230 140 320 140 Q380 140 460 120" stroke="var(--accent)" opacity="0.4">
-          <animate attributeName="opacity" values="0.2;0.5;0.2" dur="4s" repeatCount="indefinite"/>
-        </path>
-        <path class="road-line" d="M40 160 Q100 160 160 180 Q220 200 300 200 Q380 200 460 180" stroke="var(--cyan)" opacity="0.35">
-          <animate attributeName="opacity" values="0.15;0.4;0.15" dur="5s" repeatCount="indefinite"/>
-        </path>
-        <path class="road-line" d="M40 260 Q120 260 180 240 Q240 220 320 240 Q400 260 460 240" stroke="var(--orange)" opacity="0.3">
-          <animate attributeName="opacity" values="0.15;0.35;0.15" dur="6s" repeatCount="indefinite"/>
-        </path>
-        <path class="road-line" d="M40 340 Q140 340 200 360 Q260 380 340 360 Q420 340 460 350" stroke="var(--green)" opacity="0.25">
-          <animate attributeName="opacity" values="0.1;0.3;0.1" dur="4.5s" repeatCount="indefinite"/>
-        </path>
-
-        <!-- Static dots (waypoints) -->
-        <!-- Row 1 -->
-        <circle class="road-dot" cx="40" cy="60" stroke="var(--accent)"/>
-        <circle class="road-dot" cx="130" cy="72" stroke="var(--accent)"/>
-        <circle class="road-dot" cx="250" cy="140" stroke="var(--accent)"/>
-        <circle class="road-dot" cx="380" cy="132" stroke="var(--accent)"/>
-        <circle class="road-dot" cx="460" cy="120" stroke="var(--accent)"/>
-
-        <!-- Row 2 -->
-        <circle class="road-dot" cx="40" cy="160" stroke="var(--cyan)"/>
-        <circle class="road-dot" cx="160" cy="180" stroke="var(--cyan)"/>
-        <circle class="road-dot-active" cx="300" cy="200" fill="var(--cyan)">
-          <animate attributeName="r" values="4;6;4" dur="2s" repeatCount="indefinite"/>
-        </circle>
-        <circle class="road-pulse" cx="300" cy="200" stroke="var(--cyan)"/>
-        <circle class="road-dot" cx="460" cy="180" stroke="var(--cyan)"/>
-
-        <!-- Row 3 -->
-        <circle class="road-dot" cx="40" cy="260" stroke="var(--orange)"/>
-        <circle class="road-dot" cx="180" cy="240" stroke="var(--orange)"/>
-        <circle class="road-dot-active" cx="320" cy="240" fill="var(--orange)">
-          <animate attributeName="r" values="4;6;4" dur="2.5s" repeatCount="indefinite"/>
-        </circle>
-        <circle class="road-pulse" cx="320" cy="240" stroke="var(--orange)"/>
-        <circle class="road-dot" cx="460" cy="240" stroke="var(--orange)"/>
-
-        <!-- Row 4 -->
-        <circle class="road-dot" cx="40" cy="340" stroke="var(--green)"/>
-        <circle class="road-dot" cx="200" cy="360" stroke="var(--green)"/>
-        <circle class="road-dot" cx="340" cy="360" stroke="var(--green)"/>
-        <circle class="road-dot" cx="460" cy="350" stroke="var(--green)"/>
-
-        <!-- Labels -->
-        <text x="480" y="64" fill="var(--text-muted)" font-size="10" font-family="var(--font-mono)">highway</text>
-        <text x="480" y="164" fill="var(--text-muted)" font-size="10" font-family="var(--font-mono)">scenic</text>
-        <text x="480" y="264" fill="var(--text-muted)" font-size="10" font-family="var(--font-mono)">twisty</text>
-        <text x="480" y="344" fill="var(--text-muted)" font-size="10" font-family="var(--font-mono)">safe</text>
-
-        <!-- Animated traveler dots -->
-        <circle r="3" fill="var(--accent)">
-          <animateMotion dur="5s" repeatCount="indefinite" path="M40 60 Q130 60 180 100 Q230 140 320 140 Q380 140 460 120"/>
-        </circle>
-        <circle r="3" fill="var(--cyan)">
-          <animateMotion dur="6s" repeatCount="indefinite" path="M40 160 Q100 160 160 180 Q220 200 300 200 Q380 200 460 180"/>
-        </circle>
-        <circle r="2.5" fill="var(--orange)">
-          <animateMotion dur="7s" repeatCount="indefinite" path="M40 260 Q120 260 180 240 Q240 220 320 240 Q400 260 460 240"/>
-        </circle>
-        <circle r="2.5" fill="var(--green)">
-          <animateMotion dur="5.5s" repeatCount="indefinite" path="M40 340 Q140 340 200 360 Q260 380 340 360 Q420 340 460 350"/>
-        </circle>
-      </svg>
-    </div>
-  </div>
-</section>
-
-<!-- METRICS -->
-<div class="metrics">
-  <div class="container">
-    <div class="metric reveal">
-      <div class="metric-value blue">5</div>
-      <div class="metric-label">Speed Model Layers</div>
-    </div>
-    <div class="metric reveal reveal-delay-1">
-      <div class="metric-value cyan">20</div>
-      <div class="metric-label">Surface Types</div>
-    </div>
-    <div class="metric reveal reveal-delay-2">
-      <div class="metric-value orange">1005</div>
-      <div class="metric-label">Tests Passing</div>
-    </div>
-    <div class="metric reveal reveal-delay-3">
-      <div class="metric-value green">OSM</div>
-      <div class="metric-label">Open Map Data</div>
-    </div>
-  </div>
-</div>
-
-<!-- FEATURES (Bento) -->
-<section id="features" class="section">
-  <div class="container">
-    <div class="section-header reveal">
-      <div class="section-eyebrow">Features</div>
-      <h2 class="section-title">Built for Motorcycle Riders</h2>
-      <p class="section-desc">
-        Beyond standard navigation. Curvature quality, road surface, grade analysis,
-        and traffic-flow-theory-based speed estimation.
-      </p>
-    </div>
-    <div class="bento">
-      <div class="bento-card span-2 reveal">
-        <div class="bento-icon" style="background:var(--accent-dim)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0"/><path d="M12 2v4"/><path d="M12 18v4"/><path d="m4.93 4.93 2.83 2.83"/><path d="m16.24 16.24 2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/></svg>
-        </div>
-        <h3>Five-Layer Speed Model</h3>
-        <p>Road-class free-flow factors, BPR volume-delay congestion, surface-type reduction, grade kinematic slowdown, and motorcycle lane-filtering. Grounded in HCM Chapter 23 and BPR (1964).</p>
-      </div>
-      <div class="bento-card reveal reveal-delay-1">
-        <div class="bento-icon" style="background:var(--cyan-dim)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-        </div>
-        <h3>Curvature Analysis</h3>
-        <p>Vectorized angle computation classifies every segment as fun, dangerous, or hairpin for ride quality scoring.</p>
-      </div>
-      <div class="bento-card reveal">
-        <div class="bento-icon" style="background:var(--orange-dim)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v8l4-4"/><path d="M12 2v8l-4-4"/><path d="M20 16.2A4.5 4.5 0 0 0 17.5 8h-1.8A7 7 0 1 0 4 14.9"/></svg>
-        </div>
-        <h3>Weather Integration</h3>
-        <p>Real-time weather along your route. Adjust plans before you ride, not during.</p>
-      </div>
-      <div class="bento-card reveal reveal-delay-1">
-        <div class="bento-icon" style="background:var(--green-dim)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>
-        </div>
-        <h3>Surface Awareness</h3>
-        <p>20 surface types from asphalt to gravel to mud, each with motorcycle-specific speed factors from field research.</p>
-      </div>
-      <div class="bento-card span-2 reveal reveal-delay-2">
-        <div class="bento-icon" style="background:var(--purple-dim)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-        </div>
-        <h3>Real-Time Ready Architecture</h3>
-        <p>BPR congestion model activates automatically when live V/C ratios are available from traffic feeds (IBB Open Data, Google, TomTom, HERE). Without live data, statistical peak-hour defaults provide realistic estimates.</p>
+      <div class="hero-cards r rd3">
+        <div class="hc"><span class="hc-dot" style="background:var(--accent)"></span><span class="hc-l">Speed Model</span><span class="hc-v" style="color:var(--accent)">5 Layers</span></div>
+        <div class="hc"><span class="hc-dot" style="background:var(--cyan)"></span><span class="hc-l">Surfaces</span><span class="hc-v" style="color:var(--cyan)">20 Types</span></div>
+        <div class="hc"><span class="hc-dot" style="background:var(--orange)"></span><span class="hc-l">Tests</span><span class="hc-v" style="color:var(--orange)">1,005</span></div>
+        <div class="hc"><span class="hc-dot" style="background:var(--green)"></span><span class="hc-l">Data</span><span class="hc-v" style="color:var(--green)">OSM</span></div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- HOW IT WORKS -->
-<section id="how" class="section section-alt">
-  <div class="container">
-    <div class="section-header reveal">
-      <div class="section-eyebrow">How It Works</div>
-      <h2 class="section-title">Three Steps to Ride</h2>
-      <p class="section-desc">
-        Pick your destination, choose your style, and let the algorithm handle the rest.
-      </p>
-    </div>
-    <div class="steps-grid">
-      <div class="step-card reveal">
-        <div class="step-num">01</div>
-        <h3>Set Your Destination</h3>
-        <p>Drop pins on the map or search by name. MotoMap downloads the road network from OpenStreetMap automatically.</p>
-      </div>
-      <div class="step-card reveal reveal-delay-1">
-        <div class="step-num">02</div>
-        <h3>Choose a Riding Mode</h3>
-        <p>Sport optimizes for speed. Twisty maximizes curves. Safe avoids steep grades and poor surfaces.</p>
-      </div>
-      <div class="step-card reveal reveal-delay-2">
-        <div class="step-num">03</div>
-        <h3>Hit the Road</h3>
-        <p>View your route on the map with elevation profile, weather forecast, and real-time traffic conditions.</p>
-      </div>
-    </div>
-  </div>
-</section>
 
-<!-- RIDING MODES -->
-<section id="modes" class="section">
-  <div class="container">
-    <div class="section-header reveal">
-      <div class="section-eyebrow">Riding Modes</div>
-      <h2 class="section-title">A Route for Every Rider</h2>
-    </div>
-    <div class="modes-grid">
-      <div class="mode-card reveal">
-        <div class="mode-icon" style="background:var(--accent-dim)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-        </div>
-        <h3>Sport</h3>
-        <p>Fastest path optimized for speed and efficiency. Direct highways and smooth roads.</p>
-      </div>
-      <div class="mode-card reveal reveal-delay-1">
-        <div class="mode-icon" style="background:var(--orange-dim)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12C2 7 7 2 12 2s7 3 8 6"/><path d="M22 12c0 5-5 10-10 10S2 19 2 16"/><circle cx="12" cy="12" r="2"/></svg>
-        </div>
-        <h3>Twisty</h3>
-        <p>Maximum curvature and riding fun. Seeks out mountain passes, coastal bends, and winding valleys.</p>
-      </div>
-      <div class="mode-card reveal reveal-delay-2">
-        <div class="mode-icon" style="background:var(--green-dim)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
-        </div>
-        <h3>Safe</h3>
-        <p>Avoids steep grades, unpaved surfaces, and hazardous segments. Prioritizes well-maintained roads.</p>
-      </div>
-    </div>
-  </div>
-</section>
 
-<!-- TECH -->
-<section class="section section-alt">
-  <div class="container">
-    <div class="section-header reveal">
-      <div class="section-eyebrow">Stack</div>
-      <h2 class="section-title">Built on Solid Ground</h2>
-      <p class="section-desc">
-        Modern stack, open data, peer-reviewed algorithms.
-      </p>
-    </div>
-    <div class="tech-grid reveal">
-      <div class="tech-pill"><span class="tech-dot" style="background:var(--accent)"></span>React Native / Expo</div>
-      <div class="tech-pill"><span class="tech-dot" style="background:var(--green)"></span>Python / FastAPI</div>
-      <div class="tech-pill"><span class="tech-dot" style="background:var(--cyan)"></span>OpenStreetMap</div>
-      <div class="tech-pill"><span class="tech-dot" style="background:var(--orange)"></span>PostgreSQL</div>
-      <div class="tech-pill"><span class="tech-dot" style="background:var(--purple)"></span>NetworkX</div>
-      <div class="tech-pill"><span class="tech-dot" style="background:#F59E0B"></span>Google Maps API</div>
-    </div>
+<section id="features" class="sec"><div class="c">
+  <div class="sec-h r"><div class="sec-e">Features</div><h2 class="sec-t">Built for Motorcycle Riders</h2><p class="sec-d">Beyond standard navigation. Curvature quality, road surface, grade analysis, and traffic-flow-theory-based speed estimation.</p></div>
+  <div class="bento">
+    <div class="bc s2 r"><div class="bi" style="background:var(--accent-d)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1018 0 9 9 0 00-18 0"/><path d="M12 2v4M12 18v4m-7.07-14.93l2.83 2.83m9.31 9.31l2.83 2.83M2 12h4m12 0h4"/></svg></div><h3>Five-Layer Speed Model</h3><p>Road-class free-flow factors, BPR volume-delay congestion, surface-type reduction, grade kinematic slowdown, and motorcycle lane-filtering. Grounded in HCM Chapter 23 and BPR (1964).</p></div>
+    <div class="bc r rd1"><div class="bi" style="background:var(--cyan-d)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></div><h3>Curvature Analysis</h3><p>Vectorized angle computation classifies every segment as fun, dangerous, or hairpin for ride quality scoring.</p></div>
+    <div class="bc r"><div class="bi" style="background:var(--orange-d)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v8l4-4M12 2v8l-4-4M20 16.2A4.5 4.5 0 0017.5 8h-1.8A7 7 0 104 14.9"/></svg></div><h3>Weather Integration</h3><p>Real-time weather along your route. Adjust plans before you ride, not during.</p></div>
+    <div class="bc r rd1"><div class="bi" style="background:var(--green-d)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0112 2a8 8 0 018 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg></div><h3>Surface Awareness</h3><p>20 surface types from asphalt to gravel to mud, each with motorcycle-specific speed factors from field research.</p></div>
+    <div class="bc s2 r rd2"><div class="bi" style="background:var(--purple-d)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div><h3>Real-Time Ready Architecture</h3><p>BPR congestion model activates automatically when live V/C ratios are available from traffic feeds (IBB Open Data, Google, TomTom, HERE). Without live data, statistical peak-hour defaults provide realistic estimates.</p></div>
   </div>
-</section>
+</div></section>
 
-<!-- CTA -->
-<section class="section cta-section">
-  <div class="container">
-    <div class="cta-box reveal">
-      <h2>Start Building Routes</h2>
-      <p>MotoMap is open-source and free. Contributions welcome.</p>
-      <a href="https://github.com/alipasha03/motomap" class="btn btn-primary">
-        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
-        View on GitHub
-      </a>
-    </div>
+<section id="how" class="sec sec-alt"><div class="c">
+  <div class="sec-h r"><div class="sec-e">How It Works</div><h2 class="sec-t">Three Steps to Ride</h2><p class="sec-d">Pick your destination, choose your style, and let the algorithm handle the rest.</p></div>
+  <div class="steps">
+    <div class="step r"><div class="step-n">01</div><h3>Set Your Destination</h3><p>Drop pins on the map or search by name. MotoMap downloads the road network from OpenStreetMap automatically.</p></div>
+    <div class="step r rd1"><div class="step-n">02</div><h3>Choose a Riding Mode</h3><p>Sport optimizes for speed. Twisty maximizes curves. Safe avoids steep grades and poor surfaces.</p></div>
+    <div class="step r rd2"><div class="step-n">03</div><h3>Hit the Road</h3><p>View your route on the map with elevation profile, weather forecast, and real-time traffic conditions.</p></div>
   </div>
-</section>
+</div></section>
 
-<!-- FOOTER -->
-<footer class="footer">
-  <div class="container">
-    <span class="footer-copy">&copy; 2026 MotoMap. All rights reserved.</span>
-    <ul class="footer-links">
-      <li><a href="https://github.com/alipasha03/motomap">GitHub</a></li>
-      <li><a href="https://github.com/alipasha03/motomap/blob/main/LICENSE">License</a></li>
-      <li><a href="https://github.com/alipasha03/motomap/blob/main/CONTRIBUTING.md">Contributing</a></li>
-      <li><a href="releases.html">Releases</a></li>
-    </ul>
+<section id="modes" class="sec"><div class="c">
+  <div class="sec-h r"><div class="sec-e">Riding Modes</div><h2 class="sec-t">A Route for Every Rider</h2></div>
+  <div class="modes">
+    <div class="mc r"><div class="mi" style="background:var(--accent-d)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div><h3>Sport</h3><p>Fastest path optimized for speed and efficiency. Direct highways and smooth roads.</p></div>
+    <div class="mc r rd1"><div class="mi" style="background:var(--orange-d)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12C2 7 7 2 12 2s7 3 8 6M22 12c0 5-5 10-10 10S2 19 2 16"/><circle cx="12" cy="12" r="2"/></svg></div><h3>Twisty</h3><p>Maximum curvature and riding fun. Seeks out mountain passes, coastal bends, and winding valleys.</p></div>
+    <div class="mc r rd2"><div class="mi" style="background:var(--green-d)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg></div><h3>Safe</h3><p>Avoids steep grades, unpaved surfaces, and hazardous segments. Prioritizes well-maintained roads.</p></div>
   </div>
-</footer>
+</div></section>
 
+<section class="sec sec-alt"><div class="c">
+  <div class="sec-h r"><div class="sec-e">Stack</div><h2 class="sec-t">Built on Solid Ground</h2><p class="sec-d">Modern stack, open data, peer-reviewed algorithms.</p></div>
+  <div class="tg r">
+    <div class="tp"><span class="td" style="background:var(--accent)"></span>React Native / Expo</div>
+    <div class="tp"><span class="td" style="background:var(--green)"></span>Python / FastAPI</div>
+    <div class="tp"><span class="td" style="background:var(--cyan)"></span>OpenStreetMap</div>
+    <div class="tp"><span class="td" style="background:var(--orange)"></span>PostgreSQL</div>
+    <div class="tp"><span class="td" style="background:var(--purple)"></span>NetworkX</div>
+    <div class="tp"><span class="td" style="background:#F59E0B"></span>Google Maps API</div>
+  </div>
+</div></section>
+
+<section class="sec cta-s"><div class="c"><div class="cta-b r">
+  <h2>Start Building Routes</h2>
+  <p>MotoMap is open-source and free. Contributions welcome.</p>
+  <a href="https://github.com/alipasha03/motomap" class="btn btn-p"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>View on GitHub</a>
+</div></div></section>
+
+<footer class="ft"><div class="c">
+  <span class="ft-c">&copy; 2026 MotoMap. All rights reserved.</span>
+  <ul class="ft-l">
+    <li><a href="https://github.com/alipasha03/motomap">GitHub</a></li>
+    <li><a href="https://github.com/alipasha03/motomap/blob/main/LICENSE">License</a></li>
+    <li><a href="https://github.com/alipasha03/motomap/blob/main/CONTRIBUTING.md">Contributing</a></li>
+    <li><a href="releases.html">Releases</a></li>
+  </ul>
+</div></footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.halo.min.js"></script>
 <script>
-  // Scroll reveal via IntersectionObserver
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); } });
-  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
-  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-
-  // Close mobile menu on link click
-  document.querySelectorAll('.nav-links a').forEach(a => {
-    a.addEventListener('click', () => document.querySelector('.nav-links').classList.remove('open'));
-  });
+const io=new IntersectionObserver(e=>{e.forEach(x=>{if(x.isIntersecting)x.target.classList.add('v')})},{threshold:.1,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.r').forEach(el=>io.observe(el));
+document.querySelectorAll('.nl a').forEach(a=>a.addEventListener('click',()=>document.querySelector('.nl').classList.remove('open')));
+window.addEventListener("DOMContentLoaded",function(){if(window.VANTA&&window.VANTA.HALO){VANTA.HALO({el:".hero",mouseControls:true,touchControls:true,minHeight:400,minWidth:400,baseColor:0x0a1e4a,backgroundColor:0x050a12,amplitudeFactor:1.5,size:1.8,xOffset:0.22,yOffset:0.12})}});
 </script>
-
 </body>
 </html>

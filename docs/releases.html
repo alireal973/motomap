@@ -84,8 +84,9 @@
       display: flex; align-items: center; gap: 10px;
       text-decoration: none; color: var(--text);
     }
-    .nav-logo { height: 28px; width: auto; }
-    .nav-wordmark { font-size: 17px; font-weight: 800; letter-spacing: 1.2px; }
+    .nav-logo { height: 26px; width: auto; }
+    .nav-wm{font-size:18px;font-weight:900;letter-spacing:2.5px;background:linear-gradient(135deg,#fff 0%,rgba(255,255,255,.7) 40%,var(--accent) 60%,var(--cyan) 100%);background-size:200% 200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:wm-shift 6s ease-in-out infinite}
+    @keyframes wm-shift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
     .nav-links {
       display: flex; align-items: center; gap: 32px; list-style: none;
     }
@@ -260,14 +261,15 @@
 <nav class="nav">
   <div class="nav-inner">
     <a href="index.html" class="nav-brand">
-      <img class="nav-logo" src="assets/motomap-logo.svg" alt="MotoMap" />
+      <img class="nav-logo" src="assets/motomap-icon.svg" alt="MotoMap" /><span class="nav-wm">MOTOMAP</span>
     </a>
     <button class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')" aria-label="Menu">
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 5h14M3 10h14M3 15h14" stroke="#E8ECF4" stroke-width="1.5" stroke-linecap="round"/></svg>
     </button>
     <ul class="nav-links">
-      <li><a href="index.html">Home</a></li>
       <li><a href="index.html#features">Features</a></li>
+      <li><a href="index.html#how">How It Works</a></li>
+      <li><a href="index.html#modes">Riding Modes</a></li>
       <li><a href="releases.html" class="active">Releases</a></li>
       <li><a href="https://github.com/alipasha03/motomap" class="nav-cta">GitHub</a></li>
     </ul>
