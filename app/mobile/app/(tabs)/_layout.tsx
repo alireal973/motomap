@@ -57,35 +57,51 @@ export default function TabsLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="communities"
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <TabIcon icon={"\u{1F465}"} label="Topluluk" focused={focused} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <TabIcon icon={"\u{1F464}"} label="Profil" focused={focused} />
+          ),
+        }}
+      />
     </Tabs>
   );
 }
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: colors.bgSecondary,
+    backgroundColor: colors.bgPrimary,
     borderTopWidth: 1,
     borderTopColor: colors.surfaceBorder,
-    height: 70,
+    height: 72,
     paddingTop: 8,
-    paddingBottom: 12,
+    paddingBottom: 14,
   },
   tabItem: {
     alignItems: "center",
-    gap: 3,
+    gap: 4,
   },
   tabIcon: {
     fontSize: 22,
-    opacity: 0.45,
+    opacity: 0.4,
   },
   tabIconActive: {
     opacity: 1,
   },
   tabLabel: {
     fontSize: 10,
-    fontWeight: "600",
+    fontWeight: "700",
     color: colors.textTertiary,
-    letterSpacing: 0.3,
+    letterSpacing: 0.4,
   },
   tabLabelActive: {
     color: colors.accentBlue,

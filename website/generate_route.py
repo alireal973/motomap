@@ -218,6 +218,7 @@ def summarize_path(graph: nx.MultiDiGraph, nodes: list[int], weight_attr: str) -
     fun_count = 0
     danger_count = 0
     high_risk_count = 0
+    serit_paylasimi_m = 0.0
     grades = []
 
     for idx in range(len(nodes) - 1):
@@ -232,6 +233,7 @@ def summarize_path(graph: nx.MultiDiGraph, nodes: list[int], weight_attr: str) -
         fun_count += int(edge.get("viraj_fun_sayisi", 0) or 0)
         danger_count += int(edge.get("viraj_tehlike_sayisi", 0) or 0)
         high_risk_count += int(bool(edge.get("yuksek_risk_bolge", False)))
+        serit_paylasimi_m += float(edge.get("serit_paylasimi_m", 0.0) or 0.0)
         grades.append(float(edge.get("grade", 0.0) or 0.0))
 
     return {
@@ -243,6 +245,7 @@ def summarize_path(graph: nx.MultiDiGraph, nodes: list[int], weight_attr: str) -
         "viraj_fun_sayisi": fun_count,
         "viraj_tehlike_sayisi": danger_count,
         "yuksek_risk_segment_sayisi": high_risk_count,
+        "serit_paylasimi_m": serit_paylasimi_m,
         "ortalama_egim_orani": (sum(grades) / len(grades)) if grades else 0.0,
     }
 
@@ -394,6 +397,7 @@ def build_case_document(graph: nx.MultiDiGraph, case_def: dict) -> dict:
                 "viraj_fun": selected["viraj_fun_sayisi"],
                 "viraj_tehlike": selected["viraj_tehlike_sayisi"],
                 "yuksek_risk": selected["yuksek_risk_segment_sayisi"],
+                "serit_paylasimi": round(selected.get("serit_paylasimi_m", 0.0), 1),
                 "ortalama_egim": round(selected["ortalama_egim_orani"], 4),
                 "ucretli": selected["ucretli_yol_iceriyor"],
             },

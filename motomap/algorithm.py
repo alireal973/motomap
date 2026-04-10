@@ -10,7 +10,22 @@ from heapq import heappop, heappush
 
 import networkx as nx
 
-from motomap.config import DEFAULT_LANES, DEFAULT_MAXSPEED, DEFAULT_SURFACE
+from motomap.config import (
+    BPR_ALPHA,
+    BPR_BETA,
+    DEFAULT_LANES,
+    DEFAULT_MAXSPEED,
+    DEFAULT_SURFACE,
+    FREE_FLOW_SPEED_FACTOR,
+    INTERSECTION_DELAY_S,
+    LANE_FILTER_MIN_SPEED_KMH,
+    LANE_FILTER_SPEED_BONUS,
+    LANE_FILTER_VC_THRESHOLD,
+    MOTORWAY_MIN_CC,
+    PEAK_HOUR_VC_RATIO,
+    ROAD_CAPACITY_PER_LANE,
+    SURFACE_SPEED_FACTOR,
+)
 
 TRAVEL_TIME_ATTR = "travel_time_s"
 FERRY_CUSTOM_FILTER = '["route"="ferry"]'
@@ -105,6 +120,7 @@ class RuntimeCalibration:
     speed_factor: float
     segment_delay_s: float
     ferry_boarding_delay_s: float
+    vc_ratio_override: float | None = None
 
 
 @dataclass(frozen=True)
@@ -142,6 +158,34 @@ class RoutingAlgorithmProfile:
     default_maxspeed: Mapping[str, int] = field(
         default_factory=lambda: dict(DEFAULT_MAXSPEED)
     )
+    free_flow_speed_factor: Mapping[str, float] = field(
+        default_factory=lambda: dict(FREE_FLOW_SPEED_FACTOR)
+    )
+    surface_speed_factor: Mapping[str, float] = field(
+        default_factory=lambda: dict(SURFACE_SPEED_FACTOR)
+    )
+    intersection_delay_s: Mapping[str, float] = field(
+        default_factory=lambda: dict(INTERSECTION_DELAY_S)
+    )
+    motorway_min_cc: float = MOTORWAY_MIN_CC
+    grade_speed_reduction_factor: float = 0.35
+    bpr_alpha: Mapping[str, float] = field(
+        default_factory=lambda: dict(BPR_ALPHA)
+    )
+    bpr_beta: Mapping[str, float] = field(
+        default_factory=lambda: dict(BPR_BETA)
+    )
+    road_capacity_per_lane: Mapping[str, int] = field(
+        default_factory=lambda: dict(ROAD_CAPACITY_PER_LANE)
+    )
+    peak_hour_vc_ratio: Mapping[str, float] = field(
+        default_factory=lambda: dict(PEAK_HOUR_VC_RATIO)
+    )
+    lane_filter_speed_bonus: Mapping[int, float] = field(
+        default_factory=lambda: dict(LANE_FILTER_SPEED_BONUS)
+    )
+    lane_filter_vc_threshold: float = LANE_FILTER_VC_THRESHOLD
+    lane_filter_min_speed_kmh: float = LANE_FILTER_MIN_SPEED_KMH
     excluded_highway_types: frozenset[str] = field(
         default_factory=lambda: EXCLUDED_HIGHWAY_TYPES
     )
@@ -374,6 +418,7 @@ def _graph_cache_token(
             _cache_value_token(data.get("highway")),
             _cache_value_token(data.get("grade")),
             _cache_value_token(data.get("toll")),
+            _cache_value_token(data.get("surface")),
         ]
         if include_curve_inputs:
             edge_signature.extend(
@@ -418,6 +463,23 @@ def fill_edge_defaults(
         int(edge_data["lanes"]),
         edge_data.get("oneway", False),
     )
+    
+    tunnel = normalize_tag(edge_data.get("tunnel"))
+    lanes = parse_int(edge_data.get("lanes"), 1)
+    maxspeed = float(edge_data.get("maxspeed", 50))
+    
+    if tunnel == "yes":
+        edge_data["serit_paylasimi_m"] = 0.0
+    elif lanes >= 2:
+        if highway in {"motorway", "trunk", "primary", "motorway_link", "trunk_link"}:
+            edge_data["serit_paylasimi_m"] = safe_float(edge_data.get("length"), 0.0)
+        elif highway in {"secondary", "tertiary"} and maxspeed <= 70:
+            edge_data["serit_paylasimi_m"] = safe_float(edge_data.get("length"), 0.0)
+        else:
+            edge_data["serit_paylasimi_m"] = 0.0
+    else:
+        edge_data["serit_paylasimi_m"] = 0.0
+        
     return edge_data
 
 
@@ -438,10 +500,16 @@ def runtime_calibration_from_env(
         os.getenv("MOTOMAP_FERRY_BOARDING_DELAY_S"),
         default=profile.default_ferry_boarding_delay_s,
     )
+    vc_raw = os.getenv("MOTOMAP_VC_RATIO")
+    vc_ratio_override: float | None = None
+    if vc_raw is not None:
+        vc_ratio_override = min(1.5, max(0.0, safe_float(vc_raw, default=0.0)))
+
     return RuntimeCalibration(
         speed_factor=min(1.0, max(0.2, speed_factor)),
         segment_delay_s=min(8.0, max(0.0, segment_delay_s)),
         ferry_boarding_delay_s=min(1800.0, max(0.0, ferry_boarding_delay_s)),
+        vc_ratio_override=vc_ratio_override,
     )
 
 
@@ -508,12 +576,117 @@ def filter_motorcycle_edges(
     return graph.edge_subgraph(keep).copy()
 
 
+def _effective_speed_kmh(
+    edge_data: Mapping[str, object],
+    calibration: RuntimeCalibration,
+    profile: RoutingAlgorithmProfile,
+) -> float:
+    """Compute effective motorcycle speed considering road class, surface,
+    grade, traffic congestion (BPR model) and motorcycle lane filtering.
+
+    The model has five layers:
+
+    Layer 1 -- Free-flow speed (HCM Ch. 23 methodology):
+      V_ff = V_posted * f_class * f_surface * f_grade * f_global
+
+    Layer 2 -- BPR congestion delay (Bureau of Public Roads, 1964):
+      f_bpr = 1 / [1 + alpha * (V/C) ^ beta]
+      V_car = V_ff * f_bpr
+
+    Layer 3 -- Motorcycle lane-filtering advantage:
+      If V/C > threshold and lanes >= 2:
+        V_moto = V_car + bonus(lanes)
+      Else:
+        V_moto = V_car
+
+    The V/C ratio can come from three sources (priority order):
+      1. MOTOMAP_VC_RATIO env var (global override for testing)
+      2. edge_data["vc_ratio"] (per-edge live traffic feed)
+      3. profile.peak_hour_vc_ratio[highway] (statistical default)
+
+    When MOTOMAP_VC_RATIO is unset and no per-edge data exists, the model
+    falls back to peak-hour statistical V/C ratios, making it a planning-level
+    estimator.  When a real-time traffic feed populates edge_data["vc_ratio"],
+    the model becomes dynamically responsive to current conditions.
+    """
+
+    highway = get_highway_type(edge_data)
+    speed_kmh = parse_speed_kmh(
+        edge_data.get("maxspeed"),
+        default=profile.default_speed_kmh,
+    )
+
+    # Layer 1: free-flow speed
+    f_class = profile.free_flow_speed_factor.get(highway, 0.70)
+    surface = normalize_tag(edge_data.get("surface")) or profile.default_surface
+    f_surface = profile.surface_speed_factor.get(surface, 0.80)
+    grade = safe_float(edge_data.get("grade"), default=0.0)
+    abs_grade = abs(grade)
+    f_grade = max(0.40, 1.0 - profile.grade_speed_reduction_factor * abs_grade)
+    v_ff = speed_kmh * f_class * f_surface * f_grade * calibration.speed_factor
+
+    # Layer 2: BPR congestion
+    if calibration.vc_ratio_override is not None:
+        vc = calibration.vc_ratio_override
+    else:
+        edge_vc = edge_data.get("vc_ratio")
+        if edge_vc is not None:
+            vc = safe_float(edge_vc, default=0.0)
+        else:
+            vc = profile.peak_hour_vc_ratio.get(highway, 0.0)
+
+    alpha = profile.bpr_alpha.get(highway, 0.15)
+    beta = profile.bpr_beta.get(highway, 4.0)
+    bpr_factor = 1.0 / (1.0 + alpha * (vc ** beta)) if vc > 0.0 else 1.0
+    v_car = v_ff * bpr_factor
+
+    # Layer 3: motorcycle lane-filtering advantage
+    lanes_forward = parse_int(edge_data.get("lanes_forward"), 1)
+    if vc > profile.lane_filter_vc_threshold and lanes_forward >= 2:
+        bonus_key = min(lanes_forward, 3)
+        bonus = profile.lane_filter_speed_bonus.get(bonus_key, 5.0)
+        v_moto = max(v_car + bonus, profile.lane_filter_min_speed_kmh)
+    else:
+        v_moto = v_car
+
+    return max(5.0, v_moto)
+
+
+def _intersection_delay(
+    edge_data: Mapping[str, object],
+    profile: RoutingAlgorithmProfile,
+) -> float:
+    """Estimate intersection delay using highway class as a proxy.
+
+    Limited-access roads (motorways, trunks) carry zero delay.  Arterials
+    and collectors use HCM control-delay approximations scaled by a global
+    calibration knob.
+    """
+
+    highway = get_highway_type(edge_data)
+    return profile.intersection_delay_s.get(highway, profile.default_segment_delay_s)
+
+
 def compute_edge_travel_time(
     edge_data: Mapping[str, object],
     calibration: RuntimeCalibration | None = None,
     profile: RoutingAlgorithmProfile = DEFAULT_ALGORITHM_PROFILE,
 ) -> float:
-    """Estimate edge travel time in seconds for roads and ferry segments."""
+    """Estimate edge travel time in seconds for roads and ferry segments.
+
+    The travel time model follows a three-layer approach adapted from HCM
+    (Highway Capacity Manual) methodology:
+
+    1. **Free-flow speed** is derived from the posted speed limit adjusted by
+       road-class, surface-type and grade reduction factors.
+    2. **Segment traversal time** is length / effective_speed.
+    3. **Intersection delay** is added per-edge based on road class (proxy for
+       signal/stop density).
+
+    Without real-time traffic volume data the model cannot apply the full BPR
+    volume-delay function.  The ``speed_factor`` runtime knob serves as a
+    residual congestion proxy that can be tuned per deployment context.
+    """
 
     calibration = calibration or runtime_calibration_from_env(profile)
     if is_ferry_edge(edge_data):
@@ -529,12 +702,10 @@ def compute_edge_travel_time(
         return (length_m / speed_ms) + calibration.ferry_boarding_delay_s
 
     length_m = float(edge_data.get("length", 0.0) or 0.0)
-    speed_kmh = parse_speed_kmh(
-        edge_data.get("maxspeed"),
-        default=profile.default_speed_kmh,
-    )
-    speed_ms = max(1.0, (speed_kmh * calibration.speed_factor) / 3.6)
-    return (length_m / speed_ms) + calibration.segment_delay_s
+    effective_kmh = _effective_speed_kmh(edge_data, calibration, profile)
+    speed_ms = max(1.0, effective_kmh / 3.6)
+    delay = _intersection_delay(edge_data, profile)
+    return (length_m / speed_ms) + delay
 
 
 def add_travel_time_to_graph(
@@ -662,11 +833,21 @@ def cc_highway_penalty(
     motor_cc: float | None,
     profile: RoutingAlgorithmProfile = DEFAULT_ALGORITHM_PROFILE,
 ) -> float:
-    """Return a large penalty when the motorcycle should avoid major highways."""
+    """Return a large penalty when the motorcycle should avoid major highways.
+
+    Turkish traffic law (Karayollari Trafik Yonetmeligi, Madde 38) and EU
+    Directive 2006/126/EC prohibit motorcycles below 125 cc from using
+    motorways and expressways.  Mopeds (<=50 cc) receive a harder penalty
+    because they are categorically banned from all limited-access roads.
+    """
 
     if motor_cc is None:
         return 1.0
-    if motor_cc <= 50.0 and highway in profile.cc_restricted_highway_types:
+    if highway not in profile.cc_restricted_highway_types:
+        return 1.0
+    if motor_cc <= 50.0:
+        return 1e6
+    if motor_cc < profile.motorway_min_cc:
         return 1e6
     return 1.0
 
@@ -1061,6 +1242,7 @@ def summarize_route(
     fun_count = 0
     danger_count = 0
     high_risk_count = 0
+    serit_paylasimi_m = 0.0
     grades = []
 
     for idx in range(len(nodes) - 1):
@@ -1080,6 +1262,7 @@ def summarize_route(
         fun_count += int(edge_data.get("viraj_fun_sayisi", 0) or 0)
         danger_count += int(edge_data.get("viraj_tehlike_sayisi", 0) or 0)
         high_risk_count += int(bool(edge_data.get("yuksek_risk_bolge", False)))
+        serit_paylasimi_m += safe_float(edge_data.get("serit_paylasimi_m"), default=0.0)
         grades.append(safe_float(edge_data.get("grade"), default=0.0))
 
     return {
@@ -1092,6 +1275,7 @@ def summarize_route(
         "viraj_fun_sayisi": fun_count,
         "viraj_tehlike_sayisi": danger_count,
         "yuksek_risk_segment_sayisi": high_risk_count,
+        "serit_paylasimi_m": serit_paylasimi_m,
         "ortalama_egim_orani": float(sum(grades) / len(grades)) if grades else 0.0,
     }
 

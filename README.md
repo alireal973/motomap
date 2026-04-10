@@ -200,11 +200,53 @@ $$
 
 ### 2. Travel Time Estimation
 
-Each road edge is converted to seconds using calibrated speed and segment delay:
+Each road edge's travel time is computed using a multi-factor effective speed model
+derived from HCM (Highway Capacity Manual) Chapter 23 methodology, adapted for
+motorcycle dynamics:
 
 $$
-T_{road}(e) = \frac{L(e)}{V_{max}(e) \times f_{speed} \;/\; 3.6} + \delta_{segment}
+V_{eff}(e) = V_{posted}(e) \times f_{class}(e) \times f_{surface}(e) \times f_{grade}(e) \times f_{global}
 $$
+
+$$
+T_{road}(e) = \frac{L(e)}{V_{eff}(e) \;/\; 3.6} + \delta_{intersection}(e)
+$$
+
+| Factor | Meaning | Source |
+|---|---|---|
+| $f_{class}$ | Road-class free-flow factor (HCM Table 23-1 adapted) | `FREE_FLOW_SPEED_FACTOR` in config |
+| $f_{surface}$ | Pavement quality reduction (motorcycle-specific) | `SURFACE_SPEED_FACTOR` in config |
+| $f_{grade}$ | Grade speed reduction: $\max(0.4,\; 1 - 0.35 \times \|grade\|)$ | HCM Exhibit 23-8 simplified |
+| $f_{global}$ | Runtime calibration knob (residual congestion proxy) | `MOTOMAP_SPEED_FACTOR` env (default 0.55) |
+| $\delta_{intersection}$ | Per-edge intersection delay by road class | `INTERSECTION_DELAY_S` in config |
+
+#### Road-Class Free-Flow Factors
+
+Motorcycles achieve different fractions of the posted speed limit depending on
+access control, lateral friction, and intersection density (per HCM methodology):
+
+| Highway type | $f_{class}$ | Intersection delay (s) |
+|---|---|---|
+| `motorway` | 0.95 | 0.0 |
+| `trunk` | 0.92 | 0.0 |
+| `primary` | 0.85 | 8.0 |
+| `secondary` | 0.80 | 6.0 |
+| `tertiary` | 0.75 | 5.0 |
+| `residential` | 0.70 | 3.0 |
+| `living_street` | 0.60 | 2.0 |
+| `service` | 0.55 | 2.0 |
+
+#### Surface-Type Speed Factors
+
+Surface type dramatically affects motorcycle handling.  Factors are derived from
+OSRM/Valhalla surface penalties scaled for motorcycle characteristics:
+
+| Surface | $f_{surface}$ | | Surface | $f_{surface}$ |
+|---|---|---|---|---|
+| asphalt | 1.00 | | compacted | 0.60 |
+| concrete | 0.95 | | gravel | 0.45 |
+| paving_stones | 0.70 | | dirt / earth | 0.35 |
+| cobblestone | 0.55 | | sand | 0.20 |
 
 Ferry edges use OSM `duration` tags when available, otherwise:
 
@@ -214,16 +256,25 @@ $$
 
 | Parameter | Default | Source |
 |---|---|---|
-| $f_{speed}$ | 0.55 | `MOTOMAP_SPEED_FACTOR` env or profile default |
-| $\delta_{segment}$ | 2.0 s | `MOTOMAP_SEGMENT_DELAY_S` env or profile default |
+| $f_{global}$ | 0.55 | `MOTOMAP_SPEED_FACTOR` env or profile default |
 | $V_{ferry}$ | 18 km/h | `default_ferry_speed_kmh` in profile |
 | $\delta_{boarding}$ | 480 s (8 min) | `MOTOMAP_FERRY_BOARDING_DELAY_S` env or profile default |
 
-> **Implementation:** [`motomap/algorithm.py:511-537`](motomap/algorithm.py#L511) &mdash; `compute_edge_travel_time()`
-> handles both road and ferry cases with runtime calibration.
+> **Implementation:** `motomap/algorithm.py` &mdash; `_effective_speed_kmh()` computes the
+> multi-factor speed; `_intersection_delay()` returns per-class delay;
+> `compute_edge_travel_time()` assembles the final travel time.
 >
-> **Calibration loader:** [`motomap/algorithm.py:424-445`](motomap/algorithm.py#L424) &mdash; `runtime_calibration_from_env()`
+> **Speed factor tables:** `motomap/config.py` &mdash; `FREE_FLOW_SPEED_FACTOR`,
+> `SURFACE_SPEED_FACTOR`, `INTERSECTION_DELAY_S`
+>
+> **Calibration loader:** `motomap/algorithm.py` &mdash; `runtime_calibration_from_env()`
 > reads and clamps override values from environment variables.
+>
+> **Design note:** Without real-time traffic volume data, the model cannot apply the
+> full BPR (Bureau of Public Roads) volume-delay function
+> $t = t_{ff} \times [1 + \alpha(V/C)^\beta]$.  The `speed_factor` serves as a
+> residual congestion proxy that can be tuned per deployment context or replaced
+> with a BPR layer when live traffic feeds become available.
 
 ---
 

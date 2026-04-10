@@ -32,9 +32,9 @@ MOTOR_CC_CASES = (None, 50.0, 125.0, 650.0)
 
 def _build_simple_graph() -> nx.MultiDiGraph:
     graph = nx.MultiDiGraph()
-    graph.add_edge(1, 2, 0, highway="primary", length=800.0, maxspeed=80, toll="no")
-    graph.add_edge(2, 3, 0, highway="primary", length=850.0, maxspeed=80, toll="no")
-    graph.add_edge(1, 3, 0, highway="motorway", length=2_000.0, maxspeed=90, toll="yes")
+    graph.add_edge(1, 2, 0, highway="primary", length=500.0, maxspeed=80, toll="no")
+    graph.add_edge(2, 3, 0, highway="primary", length=500.0, maxspeed=80, toll="no")
+    graph.add_edge(1, 3, 0, highway="motorway", length=3_000.0, maxspeed=90, toll="yes")
     return graph
 
 

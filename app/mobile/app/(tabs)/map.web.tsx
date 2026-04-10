@@ -15,7 +15,7 @@ import ModeSelector from "../../components/ModeSelector";
 import RouteCompareCard from "../../components/RouteCompareCard";
 import StatCard from "../../components/StatCard";
 import { RouteData, RIDING_MODES } from "../../types";
-import { fetchRoute } from "../../utils/api";
+import { fetchRoutePreview } from "../../utils/api";
 import { formatDist, formatTime } from "../../utils/format";
 
 const { height } = Dimensions.get("window");
@@ -27,7 +27,7 @@ export default function MapScreenWeb() {
   const [activeMode, setActiveMode] = useState("standart");
 
   useEffect(() => {
-    fetchRoute()
+    fetchRoutePreview()
       .then((d) => setData(d))
       .catch((e) => setError(String(e)));
   }, []);
@@ -100,6 +100,7 @@ export default function MapScreenWeb() {
                 <StatCard label="Tehlikeli Viraj" value={String(stats.viraj_tehlike)} color={colors.warning} icon="\u26a0\ufe0f" />
                 <StatCard label="Y\u00fcksek Risk" value={String(stats.yuksek_risk)} color={colors.danger} icon="\ud83d\udd34" />
                 <StatCard label="Ort. E\u011fim" value={`%${(stats.ortalama_egim * 100).toFixed(1)}`} color={colors.info} icon="\u26f0\ufe0f" />
+                <StatCard label="\u015eerit Payla\u015f\u0131m\u0131" value={`${stats.serit_paylasimi} m`} color={colors.success} icon="\u2702\ufe0f" />
               </View>
             )}
           </ScrollView>

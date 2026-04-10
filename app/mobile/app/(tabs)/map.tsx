@@ -12,12 +12,17 @@ import {
   View,
 } from "react-native";
 import MapView, { Polyline, Circle, PROVIDER_DEFAULT } from "react-native-maps";
+import * as Location from "expo-location";
 import ModeSelector from "../../components/ModeSelector";
 import RouteCompareCard from "../../components/RouteCompareCard";
 import StatCard from "../../components/StatCard";
+import { WeatherCard } from "../../components/WeatherCard";
+import { SafetyModeToggle } from "../../components/SafetyModeToggle";
+import { ReportMarker, type RoadReport } from "../../components/ReportMarker";
+import { useWeather } from "../../hooks/useWeather";
 import { colors, spacing } from "../../theme";
-import { RouteData, RIDING_MODES } from "../../types";
-import { fetchRoute } from "../../utils/api";
+import { RouteData, RIDING_MODES, type SafetyViewMode } from "../../types";
+import { fetchRoutePreview, API_URL } from "../../utils/api";
 import { toMapCoords } from "../../utils/format";
 
 const { height } = Dimensions.get("window");
@@ -27,10 +32,39 @@ export default function MapScreen() {
   const [data, setData] = useState<RouteData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activeMode, setActiveMode] = useState("standart");
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [userLocation, setUserLocation] = useState<Location.LocationObject | null>(null);
+  const [viewMode, setViewMode] = useState<SafetyViewMode>("standard");
+  const [reports, setReports] = useState<RoadReport[]>([]);
+  const [showReports, setShowReports] = useState(true);
   const panelAnim = useRef(new Animated.Value(0)).current;
 
+  const userLat = userLocation?.coords.latitude ?? null;
+  const userLng = userLocation?.coords.longitude ?? null;
+  const { weather, roadConditions, isLoading: weatherLoading } = useWeather(userLat, userLng);
+
   useEffect(() => {
-    fetchRoute()
+    (async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          setLocationError("Konum izni reddedildi. Canli konum haritada gorunmeyecek.");
+          return;
+        }
+        const loc = await Location.getCurrentPositionAsync({});
+        setUserLocation(loc);
+
+        // Fetch nearby reports
+        try {
+          const res = await fetch(`${API_URL}/api/reports?lat=${loc.coords.latitude}&lng=${loc.coords.longitude}&radius_km=15`);
+          if (res.ok) setReports(await res.json());
+        } catch {}
+      } catch (err) {
+        console.warn("Konum alinamadi:", err);
+      }
+    })();
+
+    fetchRoutePreview()
       .then((d) => {
         setData(d);
         Animated.spring(panelAnim, {
@@ -58,6 +92,8 @@ export default function MapScreen() {
       <MapView
         style={styles.map}
         provider={PROVIDER_DEFAULT}
+        showsUserLocation={true}
+        showsMyLocationButton={true}
         initialRegion={{
           latitude: centerLat,
           longitude: centerLng,
@@ -96,7 +132,28 @@ export default function MapScreen() {
             />
           </>
         )}
+        {showReports && reports.map((r) => (
+          <ReportMarker key={r.id} report={r} />
+        ))}
       </MapView>
+
+      {/* Weather compact badge */}
+      {weather && (
+        <View style={styles.weatherOverlay}>
+          <WeatherCard weather={weather} roadConditions={roadConditions} compact />
+        </View>
+      )}
+
+      {/* Safety mode + report toggle */}
+      <View style={styles.controlsOverlay}>
+        <SafetyModeToggle activeMode={viewMode} onModeChange={setViewMode} />
+        <TouchableOpacity
+          style={[styles.reportToggle, showReports && styles.reportToggleActive]}
+          onPress={() => setShowReports(!showReports)}
+        >
+          <Text style={styles.reportToggleText}>{"\u26A0\uFE0F"}</Text>
+        </TouchableOpacity>
+      </View>
 
       <TouchableOpacity style={styles.logoBadge}>
         <Image
@@ -152,7 +209,16 @@ export default function MapScreen() {
                 <StatCard label={"Tehlikeli Viraj"} value={String(stats.viraj_tehlike)} color={colors.warning} icon={"\u26A0\uFE0F"} />
                 <StatCard label={"Y\u00FCksek Risk"} value={String(stats.yuksek_risk)} color={colors.danger} icon={"\u{1F534}"} />
                 <StatCard label={"Ort. E\u011Fim"} value={`%${(stats.ortalama_egim * 100).toFixed(1)}`} color={colors.info} icon={"\u26F0\uFE0F"} />
+                <StatCard label={"\u015Eerit Payla\u015F\u0131m\u0131"} value={`${stats.serit_paylasimi} m`} color={colors.success} icon={"\u2702\uFE0F"} />
               </View>
+            )}
+
+            {/* Weather conditions */}
+            {weather && roadConditions && (
+              <>
+                <Text style={styles.sectionTitle}>{"\uD83C\uDF24\uFE0F"} Hava Durumu</Text>
+                <WeatherCard weather={weather} roadConditions={roadConditions} />
+              </>
             )}
           </ScrollView>
         )}
@@ -217,4 +283,32 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   statsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  weatherOverlay: {
+    position: "absolute",
+    top: 52,
+    right: 16,
+  },
+  controlsOverlay: {
+    position: "absolute",
+    top: 100,
+    left: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  reportToggle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(8,28,80,0.85)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: colors.surfaceBorder,
+  },
+  reportToggleActive: {
+    backgroundColor: colors.accentBlue,
+    borderColor: colors.accentBlue,
+  },
+  reportToggleText: { fontSize: 16 },
 });

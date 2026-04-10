@@ -11,6 +11,7 @@ export type ModeStats = {
   viraj_tehlike: number;
   yuksek_risk: number;
   ortalama_egim: number;
+  serit_paylasimi: number;
   ucretli: boolean;
 };
 
@@ -73,3 +74,72 @@ export const RIDING_MODES: RidingModeInfo[] = [
   { key: "viraj_keyfi", label: "Viraj Keyfi", icon: "\u{1F300}" },
   { key: "guvenli", label: "G\u00FCvenli", icon: "\u{1F6E1}\uFE0F" },
 ];
+
+// Weather Types
+export type WeatherCondition =
+  | "clear"
+  | "clouds"
+  | "rain"
+  | "drizzle"
+  | "thunderstorm"
+  | "snow"
+  | "mist"
+  | "fog"
+  | "haze"
+  | "dust"
+  | "sand"
+  | "tornado";
+
+export type RoadSurfaceCondition = "dry" | "wet" | "icy" | "snowy" | "flooded";
+
+export type WeatherData = {
+  condition: WeatherCondition;
+  temperature_celsius: number;
+  humidity_percent: number;
+  wind_speed_ms: number;
+  wind_gust_ms: number | null;
+  visibility_meters: number;
+  precipitation_mm: number;
+};
+
+export type RoadConditionAssessment = {
+  surface_condition: RoadSurfaceCondition;
+  overall_safety_score: number;
+  lane_splitting_modifier: number;
+  grip_factor: number;
+  visibility_factor: number;
+  wind_risk_factor: number;
+  warnings: string[];
+  weather: WeatherData;
+};
+
+// Extended MotorcycleType with all backend types
+export type MotorcycleTypeExtended =
+  | "naked"
+  | "sport"
+  | "touring"
+  | "adventure"
+  | "cruiser"
+  | "scooter"
+  | "classic"
+  | "dual_sport"
+  | "enduro"
+  | "supermoto"
+  | "cafe_racer"
+  | "bobber";
+
+// Route segment for colored routes
+export type RouteSegment = {
+  segment_id: number;
+  start_lat: number;
+  start_lng: number;
+  end_lat: number;
+  end_lng: number;
+  safety_level: "safe" | "caution" | "limited" | "dangerous";
+  lane_split_suitable: boolean;
+  color_hex: string;
+  stroke_width: number;
+  opacity: number;
+};
+
+export type SafetyViewMode = "standard" | "safety" | "lane-split";
