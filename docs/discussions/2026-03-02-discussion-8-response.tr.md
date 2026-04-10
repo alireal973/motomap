@@ -1,16 +1,16 @@
 [![Language: English](https://img.shields.io/badge/Language-English-1f6feb)](2026-03-02-discussion-8-response.md)
 [![Language: Turkish](https://img.shields.io/badge/Language-Turkish-c92a2a)](2026-03-02-discussion-8-response.tr.md)
 
-## VALHALLA için Somut Entegrasyon Plani (MOTOMAP)
+## VALHALLA iÃ§in Somut Entegrasyon Plani (MOTOMAP)
 
-Çok iyi bir tartisma basligi olmus. Yazdiginiz 4 yorum; mimari, performans ve ölçekleme açisindan dogru eksende.
-Asagiya bunu MOTOMAP için uygulanabilir bir plana indirgedim.
+Ã‡ok iyi bir tartisma basligi olmus. Yazdiginiz 4 yorum; mimari, performans ve Ã¶lÃ§ekleme aÃ§isindan dogru eksende.
+Asagiya bunu MOTOMAP iÃ§in uygulanabilir bir plana indirgedim.
 
-### 1) Su anki durum (özet)
+### 1) Su anki durum (Ã¶zet)
 
 | Seviye | Tanim | MOTOMAP Durumu | Risk | Sonraki Adim |
 |---|---|---|---|---|
-| L1 - API Wrapper | HTTP ile Valhalla çagrisi | Çalisiyor (`--backend valhalla`) | Ag gecikmesi, rate-limit | Ölçüm + cache |
+| L1 - API Wrapper | HTTP ile Valhalla Ã§agrisi | Ã‡alisiyor (`--backend valhalla`) | Ag gecikmesi, rate-limit | Ã–lÃ§Ã¼m + cache |
 | L2 - Native Binding | `pyvalhalla` ile local actor | Planlandi | Tile operasyon karmasikligi | Istanbul tile PoC |
 | L3 - Custom Costing/Data | C++ costing plugin + tile enrichment | Konsept asamasi | Gelistirme maliyeti | Dar kapsamli pilot |
 
@@ -50,7 +50,7 @@ $$
 \min_{\pi \in \Pi(s,t)} \sum_{e \in \pi} C_e
 $$
 
-Çok amaçli (süre + keyif + güvenlik) skor:
+Ã‡ok amaÃ§li (sÃ¼re + keyif + gÃ¼venlik) skor:
 
 $$
 J(\pi)=w_t\,\hat T(\pi)-w_f\,\hat F(\pi)+w_r\,\hat R(\pi),
@@ -65,32 +65,32 @@ flowchart LR
     B --> C[Faz-3: Costing/Data Derin Entegrasyonu]
 ```
 
-| Faz | Hedef | Çikti | Basari Kriteri |
+| Faz | Hedef | Ã‡ikti | Basari Kriteri |
 |---|---|---|---|
-| Faz-1 | HTTP backend stabil | backend-agnostic evaluator + baseline raporlari | 20/20 batch testte stabil çalisma |
-| Faz-2 | Local actor hiz kazanimi | `pyvalhalla` ile offline routing | p95 latency'de belirgin düsüs |
+| Faz-1 | HTTP backend stabil | backend-agnostic evaluator + baseline raporlari | 20/20 batch testte stabil Ã§alisma |
+| Faz-2 | Local actor hiz kazanimi | `pyvalhalla` ile offline routing | p95 latency'de belirgin dÃ¼sÃ¼s |
 | Faz-3 | Domain-specific kalite | custom costing + enriched tiles | fun/safety metriklerinde kalici artis |
 
 ### 5) TODO (net is listesi)
 
-- [ ] `evaluate_with_google.py` içinde tüm check isimlerini baseline-agnostic standarda tasi
-- [ ] Valhalla URL'yi config/env ile yönet (`--valhalla-url` + env fallback)
-- [ ] Istanbul tile build pipeline dokümantasyonu (`extract -> build_tiles -> serve`)
+- [ ] `evaluate_with_google.py` iÃ§inde tÃ¼m check isimlerini baseline-agnostic standarda tasi
+- [ ] Valhalla URL'yi config/env ile yÃ¶net (`--valhalla-url` + env fallback)
+- [ ] Istanbul tile build pipeline dokÃ¼mantasyonu (`extract -> build_tiles -> serve`)
 - [ ] Redis route cache anahtar semasi tanimla (`origin,destination,mode,weights`)
 - [ ] L1 vs L2 benchmark (p50/p95/p99 latency, req/s, error rate)
-- [ ] Map-matching (Meili) için ayri deney scripti ekle
-- [ ] Güvenlik: API key ve token yönetimini tamamen secret manager'a tasi
+- [ ] Map-matching (Meili) iÃ§in ayri deney scripti ekle
+- [ ] GÃ¼venlik: API key ve token yÃ¶netimini tamamen secret manager'a tasi
 
 ### 6) Izleme metrikleri
 
-| Metrik | Açiklama | Hedef |
+| Metrik | AÃ§iklama | Hedef |
 |---|---|---|
-| `full_pass_rate` | Eval case tam geçme orani | >= %85 |
+| `full_pass_rate` | Eval case tam geÃ§me orani | >= %85 |
 | `modes_are_different` | Modlarin ayrismasi | >= %95 |
-| `std_time_vs_baseline_ok` | Süre orani bandi | >= %90 |
-| `safe_risk_le_standard` | Güvenli mod risk üstünlügü | %100 |
-| `p95_latency_ms` | API gecikmesi | L1'e göre L2'de düsüs |
+| `std_time_vs_baseline_ok` | SÃ¼re orani bandi | >= %90 |
+| `safe_risk_le_standard` | GÃ¼venli mod risk Ã¼stÃ¼nlÃ¼gÃ¼ | %100 |
+| `p95_latency_ms` | API gecikmesi | L1'e gÃ¶re L2'de dÃ¼sÃ¼s |
 
 Kapanis:
-L1 tarafi dogru yolda. En yüksek ROI su anda L2 (PyValhalla + local tiles + cache).
-Bunu tamamladiktan sonra L3'e geçmek, teoriyi ürüne dönüstüren en rasyonel sira olur.
+L1 tarafi dogru yolda. En yÃ¼ksek ROI su anda L2 (PyValhalla + local tiles + cache).
+Bunu tamamladiktan sonra L3'e geÃ§mek, teoriyi Ã¼rÃ¼ne dÃ¶nÃ¼stÃ¼ren en rasyonel sira olur.

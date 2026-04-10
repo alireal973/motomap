@@ -1,0 +1,12 @@
+plugins: []
+exclude:
+  - architecture
+  - benchmark
+  - research
+  - research_suggestion
+  - discussions
+  - plans
+  - superpowers
+  - github-issues
+  - issue_4
+  - assets

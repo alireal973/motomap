@@ -3,8 +3,8 @@
 
 # Istanbul-Antalya 10K Benchmark
 
-## Amaç
-Bu benchmark'in hedefi, uzun mesafede (Istanbul bölgesi -> Antalya bölgesi) üç motoru karsilastirmaktir:
+## AmaÃ§
+Bu benchmark'in hedefi, uzun mesafede (Istanbul bÃ¶lgesi -> Antalya bÃ¶lgesi) Ã¼Ã§ motoru karsilastirmaktir:
 
 - Google Directions API
 - Valhalla
@@ -12,36 +12,36 @@ Bu benchmark'in hedefi, uzun mesafede (Istanbul bölgesi -> Antalya bölgesi) üç m
 
 Ana odak:
 
-- Mesafe ve süre farklari
-- Google'a göre oranlar (ratio)
-- Google'a göre hata yüzdeleri (APE, MAPE)
-- Büyük örneklemde (10.000 case) stabilite
+- Mesafe ve sÃ¼re farklari
+- Google'a gÃ¶re oranlar (ratio)
+- Google'a gÃ¶re hata yÃ¼zdeleri (APE, MAPE)
+- BÃ¼yÃ¼k Ã¶rneklemde (10.000 case) stabilite
 
 ## Pipeline
 
 ```mermaid
 flowchart TD
-    A[CLI Parametreleri] --> B[Koridor Grafi Yükle/Olustur]
-    B --> C[O-D Pair Yükle veya Üret]
+    A[CLI Parametreleri] --> B[Koridor Grafi YÃ¼kle/Olustur]
+    B --> C[O-D Pair YÃ¼kle veya Ãœret]
     C --> D[Resume Durumunu Oku]
-    D --> E[Her Case Için Çalistir]
+    D --> E[Her Case IÃ§in Ã‡alistir]
     E --> F[Google]
     E --> G[Valhalla]
     E --> H[MotoMap]
-    F --> I[Mesafe/Süre Normalize]
+    F --> I[Mesafe/SÃ¼re Normalize]
     G --> I
     H --> I
-    I --> J[Google'a Göre Ratio + APE]
+    I --> J[Google'a GÃ¶re Ratio + APE]
     J --> K[results.jsonl Satiri Yaz]
-    K --> L[Tüm Case Özet Istatistikleri]
+    K --> L[TÃ¼m Case Ã–zet Istatistikleri]
     L --> M[summary.json]
 ```
 
-## Çiktilar
+## Ã‡iktilar
 
 - Pair dosyasi: `--pairs-json`
-- Satir bazli sonuçlar (resume dostu): `--results-jsonl`
-- Özet rapor: `--summary-json`
+- Satir bazli sonuÃ§lar (resume dostu): `--results-jsonl`
+- Ã–zet rapor: `--summary-json`
 - Koridor graph cache: `--graph-cache`
 
 ## Metrikler
@@ -58,19 +58,19 @@ Yorum:
 - `ratio = 1.0` -> referansla ayni
 - `ratio > 1.0` -> daha uzun
 - `ratio < 1.0` -> daha kisa
-- APE/MAPE düsükse Google'a yakinlik artar
+- APE/MAPE dÃ¼sÃ¼kse Google'a yakinlik artar
 
 ## Komutlar
 
 ### C++ sampler derleme (opsiyonel)
-`embeddings` klasöründe C++ O-D sampler bulunur. Script bunu otomatik derlemeyi dener.
-Manuel derleme için:
+`embeddings` klasÃ¶rÃ¼nde C++ O-D sampler bulunur. Script bunu otomatik derlemeyi dener.
+Manuel derleme iÃ§in:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File embeddings/build_od_sampler.ps1
 ```
 
-### Dry-run (sadece hazirlik + özet)
+### Dry-run (sadece hazirlik + Ã¶zet)
 ```bash
 python website/benchmark_istanbul_antalya_10k.py \
   --count 10000 \
@@ -81,12 +81,12 @@ python website/benchmark_istanbul_antalya_10k.py \
   --graph-cache website/cache/ia_corridor.graphml
 ```
 
-Python sampler'a zorla dönmek için:
+Python sampler'a zorla dÃ¶nmek iÃ§in:
 ```bash
 python website/benchmark_istanbul_antalya_10k.py --disable-cpp-sampler --dry-run
 ```
 
-C++ sampler'i zorla kullanmak için:
+C++ sampler'i zorla kullanmak iÃ§in:
 ```bash
 python website/benchmark_istanbul_antalya_10k.py --force-cpp-sampler --dry-run
 ```
@@ -116,13 +116,13 @@ python website/benchmark_istanbul_antalya_10k.py \
 ```
 
 ### Resume (kaldigi yerden devam)
-Ayni `--pairs-json` ve `--results-jsonl` ile komutu tekrar çalistirin. Script, tamamlanan `case_id` kayitlarini atlar.
+Ayni `--pairs-json` ve `--results-jsonl` ile komutu tekrar Ã§alistirin. Script, tamamlanan `case_id` kayitlarini atlar.
 
 ## Pratik Notlar
 
-- 10.000 Google çagrisi maliyetlidir; önce smoke kosusu önerilir.
+- 10.000 Google Ã§agrisi maliyetlidir; Ã¶nce smoke kosusu Ã¶nerilir.
 - Public Valhalla servislerinde hiz ve erisim dalgalanabilir.
-- QPS degerlerini düsük baslayip kademeli artirmak daha güvenlidir.
-- Uzun kosularda `results.jsonl` dosyasi resume için kritik artefakttir.
-- Conda ortaminda MinGW kullaniyorsaniz DLL çakismasi yasanabilir; script, `g++` klasörünü PATH basina alarak bunu otomatik azaltir.
-- Sampler modu varsayilan olarak otomatik seçilir: küçük/orta batch'lerde Python, çok büyük batch'lerde C++ denenir; esik üstünde kisa bir mikro-benchmark ile hizli olan seçilir.
+- QPS degerlerini dÃ¼sÃ¼k baslayip kademeli artirmak daha gÃ¼venlidir.
+- Uzun kosularda `results.jsonl` dosyasi resume iÃ§in kritik artefakttir.
+- Conda ortaminda MinGW kullaniyorsaniz DLL Ã§akismasi yasanabilir; script, `g++` klasÃ¶rÃ¼nÃ¼ PATH basina alarak bunu otomatik azaltir.
+- Sampler modu varsayilan olarak otomatik seÃ§ilir: kÃ¼Ã§Ã¼k/orta batch'lerde Python, Ã§ok bÃ¼yÃ¼k batch'lerde C++ denenir; esik Ã¼stÃ¼nde kisa bir mikro-benchmark ile hizli olan seÃ§ilir.

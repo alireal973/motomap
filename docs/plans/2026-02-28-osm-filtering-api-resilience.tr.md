@@ -1,17 +1,17 @@
 [![Language: English](https://img.shields.io/badge/Language-English-1f6feb)](2026-02-28-osm-filtering-api-resilience.md)
 [![Language: Turkish](https://img.shields.io/badge/Language-Turkish-c92a2a)](2026-02-28-osm-filtering-api-resilience.tr.md)
 
-# OSM Motosiklet Filtreleme & API Hata Yönetimi — Implementation Plan
+# OSM Motosiklet Filtreleme & API Hata YÃ¶netimi â€” Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Motosiklete uygun olmayan yol segmentlerini OSM veri çekiminde filtreleyip, Google/Open Topo Data API çagrilarinda dayanikli hata yönetimi eklemek.
+**Goal:** Motosiklete uygun olmayan yol segmentlerini OSM veri Ã§ekiminde filtreleyip, Google/Open Topo Data API Ã§agrilarinda dayanikli hata yÃ¶netimi eklemek.
 
-**Architecture:** `data_loader.py` ve `data_cleaner.py` modüllerine filtreleme katmani eklenir. `elevation.py` modülüne retry/backoff + fallback mekanizmasi eklenir. Yeni bir `osm_validator.py` modülü olusturulur.
+**Architecture:** `data_loader.py` ve `data_cleaner.py` modÃ¼llerine filtreleme katmani eklenir. `elevation.py` modÃ¼lÃ¼ne retry/backoff + fallback mekanizmasi eklenir. Yeni bir `osm_validator.py` modÃ¼lÃ¼ olusturulur.
 
 **Tech Stack:** Python 3.10+, osmnx 2.1+, networkx 3.0+, tenacity (retry), logging
 
-**Issues:** #5 (görev 2), #6 (Sub-issue: OSM + Google API risk analizi)
+**Issues:** #5 (gÃ¶rev 2), #6 (Sub-issue: OSM + Google API risk analizi)
 
 ---
 
@@ -21,23 +21,23 @@
 
 | Issue | Baslik | Durum | Commit |
 |-------|--------|-------|--------|
-| #3 | görev 1 — ücretli/ücretsiz yol tercihi | ? Tamamlandi | `5749b08`, `091666d` |
-| #4 | viraj seçenegi ve yokuslar | ? Tamamlandi | `e9edce8` |
+| #3 | gÃ¶rev 1 â€” Ã¼cretli/Ã¼cretsiz yol tercihi | ? Tamamlandi | `5749b08`, `091666d` |
+| #4 | viraj seÃ§enegi ve yokuslar | ? Tamamlandi | `e9edce8` |
 
-### Açik Isler (Bu Plan)
+### AÃ§ik Isler (Bu Plan)
 
 | Issue | Baslik | Durum | Bagimlilik |
 |-------|--------|-------|------------|
-| #5 | görev 2 — motosiklet kurallarina uygun filtreleme | ?? Açik | — |
-| #6 | Sub-issue: OSM + Google API risk analizi | ?? Açik | #5 (parent) |
+| #5 | gÃ¶rev 2 â€” motosiklet kurallarina uygun filtreleme | ?? AÃ§ik | â€” |
+| #6 | Sub-issue: OSM + Google API risk analizi | ?? AÃ§ik | #5 (parent) |
 
 ---
 
-## Matematiksel Çerçeve
+## Matematiksel Ã‡erÃ§eve
 
 ### Yol Uygunluk Fonksiyonu
 
-Her OSM kenari $e$ için motosiklet uygunluk skoru:
+Her OSM kenari $e$ iÃ§in motosiklet uygunluk skoru:
 
 $$
 \text{uygun}(e) = \begin{cases}
@@ -47,13 +47,13 @@ $$
 \end{cases}
 $$
 
-Burada $\mathcal{F}$ filtrelenecek yol tipleri kümesi:
+Burada $\mathcal{F}$ filtrelenecek yol tipleri kÃ¼mesi:
 
 $$
 \mathcal{F} = \{\texttt{cycleway},\; \texttt{footway},\; \texttt{pedestrian},\; \texttt{path},\; \texttt{steps},\; \texttt{corridor},\; \texttt{bridleway}\}
 $$
 
-### Geçerli Graf
+### GeÃ§erli Graf
 
 $$
 G' = (V, E'), \quad E' = \{e \in E \mid \text{uygun}(e) = 1\}
@@ -61,14 +61,14 @@ $$
 
 ### API Dayaniklilik Modeli
 
-Elevation API çagrisi için retry stratejisi:
+Elevation API Ã§agrisi iÃ§in retry stratejisi:
 
 $$
 t_{\text{wait}}(n) = \min\!\left(t_{\max},\; t_0 \cdot b^{n-1}\right), \quad n \in \{1, 2, \ldots, N_{\max}\}
 $$
 
-- $t_0 = 1\text{s}$ (baslangiç bekleme)
-- $b = 2$ (üstel çarpan)
+- $t_0 = 1\text{s}$ (baslangiÃ§ bekleme)
+- $b = 2$ (Ã¼stel Ã§arpan)
 - $t_{\max} = 30\text{s}$ (maksimum bekleme)
 - $N_{\max} = 3$ (maksimum deneme)
 
@@ -76,15 +76,15 @@ Fallback zinciri:
 
 $$
 \text{elevation}(v) = \begin{cases}
-\text{Google}(v), & \text{API key geçerli} \land \text{kota yeterli} \\
+\text{Google}(v), & \text{API key geÃ§erli} \land \text{kota yeterli} \\
 \text{OpenTopo}(v), & \text{Google basarisiz} \\
-0, & \text{tüm API'ler basarisiz (degrade mode)}
+0, & \text{tÃ¼m API'ler basarisiz (degrade mode)}
 \end{cases}
 $$
 
 ---
 
-### Task 1: OSM Validator Modülü — Testler
+### Task 1: OSM Validator ModÃ¼lÃ¼ â€” Testler
 
 **Files:**
 - Create: `tests/test_osm_validator.py`
@@ -107,7 +107,7 @@ def _make_mixed_graph():
     G.add_node(4, x=29.03, y=41.0)
     G.add_node(5, x=29.04, y=41.0)
 
-    # Geçerli kenarlar
+    # GeÃ§erli kenarlar
     G.add_edge(1, 2, 0, highway="primary", length=100.0)
     G.add_edge(2, 3, 0, highway="residential", length=50.0)
     G.add_edge(3, 4, 0, highway="motorway", length=200.0)
@@ -123,7 +123,7 @@ def _make_mixed_graph():
 
 
 def _make_access_restricted_graph():
-    """Kenarlar highway olarak geçerli ama access='no'."""
+    """Kenarlar highway olarak geÃ§erli ama access='no'."""
     G = nx.MultiDiGraph()
     G.add_node(1, x=29.0, y=41.0)
     G.add_node(2, x=29.01, y=41.0)
@@ -221,7 +221,7 @@ git commit -m "test: add osm_validator tests (red phase)"
 
 ---
 
-### Task 2: OSM Validator Modülü — Implementation
+### Task 2: OSM Validator ModÃ¼lÃ¼ â€” Implementation
 
 **Files:**
 - Create: `motomap/osm_validator.py`
@@ -303,7 +303,7 @@ git commit -m "feat: add OSM motorcycle edge filter (issue #5)"
 
 ---
 
-### Task 3: Pipeline Entegrasyonu — `motomap_graf_olustur` Güncelleme
+### Task 3: Pipeline Entegrasyonu â€” `motomap_graf_olustur` GÃ¼ncelleme
 
 **Files:**
 - Modify: `motomap/__init__.py`
@@ -314,7 +314,7 @@ Add to `tests/test_osm_validator.py`:
 
 ```python
 def test_pipeline_excludes_invalid_edges():
-    """filter_motorcycle_edges grafi pipeline'a entegre edildiginde çalisir."""
+    """filter_motorcycle_edges grafi pipeline'a entegre edildiginde Ã§alisir."""
     G = _make_mixed_graph()
     from motomap.data_cleaner import clean_graph
     G = clean_graph(G)
@@ -347,7 +347,7 @@ git commit -m "feat: integrate OSM filter into main pipeline (issue #5)"
 
 ---
 
-### Task 4: Elevation API Dayaniklilik — Testler
+### Task 4: Elevation API Dayaniklilik â€” Testler
 
 **Files:**
 - Create: `tests/test_elevation_resilience.py`
@@ -376,7 +376,7 @@ class TestElevationFallback:
     def test_google_fails_falls_to_opentopo(self, mock_google):
         mock_google.side_effect = Exception("API key invalid")
         G = _make_small_graph()
-        # Should not raise — falls back to Open Topo Data
+        # Should not raise â€” falls back to Open Topo Data
         result = add_elevation(G, api_key="fake_key")
         assert isinstance(result, nx.MultiDiGraph)
 
@@ -401,7 +401,7 @@ class TestElevationFallback:
 **Step 2: Run tests to verify they fail**
 
 Run: `pytest tests/test_elevation_resilience.py -v`
-Expected: FAIL — `ImportError: cannot import name 'ElevationAPIError'`
+Expected: FAIL â€” `ImportError: cannot import name 'ElevationAPIError'`
 
 **Step 3: Commit**
 
@@ -412,7 +412,7 @@ git commit -m "test: add elevation resilience tests (red phase)"
 
 ---
 
-### Task 5: Elevation API Dayaniklilik — Implementation
+### Task 5: Elevation API Dayaniklilik â€” Implementation
 
 **Files:**
 - Modify: `motomap/elevation.py`
@@ -465,7 +465,7 @@ def _try_opentopo(G, retries=_MAX_RETRIES):
 
 
 def _degrade_mode(G):
-    logger.error("All elevation APIs failed — degrade mode: elevation=0")
+    logger.error("All elevation APIs failed â€” degrade mode: elevation=0")
     for node in G.nodes:
         G.nodes[node].setdefault("elevation", 0)
     return G
@@ -527,7 +527,7 @@ def test_list_highway_normalized():
     assert data["highway"] == "primary"
 ```
 
-**Step 2: Run test — should already pass**
+**Step 2: Run test â€” should already pass**
 
 Run: `pytest tests/test_data_cleaner.py::test_list_highway_normalized -v`
 Expected: PASS (existing `_get_highway_type` handles this)
@@ -591,7 +591,7 @@ Expected: Clean working tree
 git push origin main
 ```
 
-**Step 4: Issue güncellemeleri**
+**Step 4: Issue gÃ¼ncellemeleri**
 
 - Issue #3 ? Close (tamamlandi)
 - Issue #4 ? Close (tamamlandi)
