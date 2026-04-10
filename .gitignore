@@ -31,9 +31,10 @@ cache/
 # Node.js
 node_modules/
 
-# Output files (except website/index.html)
+# Output files (except website and docs)
 *.html
 !website/index.html
+!docs/*.html
 
 # Website build output
 website/dist/
