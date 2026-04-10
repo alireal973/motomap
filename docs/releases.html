@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MotoMap -- Release Notes</title>
+  <title>MotoMap &mdash; Release Notes</title>
   <meta name="description" content="MotoMap release notes. Algorithm changes, formulas, and version history." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -18,445 +18,580 @@
   <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
   <style>
     :root {
-      --bg-deep: #030B1A;
-      --bg-primary: #06132E;
-      --bg-card: rgba(255,255,255,0.04);
-      --bg-card-hover: rgba(255,255,255,0.07);
-      --bg-code: rgba(255,255,255,0.06);
-      --border: rgba(255,255,255,0.08);
-      --border-bright: rgba(255,255,255,0.14);
+      --bg-deep: #050A12;
+      --bg-primary: #0A1220;
+      --bg-elevated: #0F1A2E;
+      --bg-card: rgba(255,255,255,0.03);
+      --bg-card-hover: rgba(255,255,255,0.06);
+      --bg-code: rgba(255,255,255,0.05);
+      --border: rgba(255,255,255,0.06);
+      --border-hover: rgba(255,255,255,0.12);
       --accent: #3B82F6;
-      --accent-dark: #2563EB;
+      --accent-dim: rgba(59,130,246,0.15);
       --cyan: #22D3EE;
+      --cyan-dim: rgba(34,211,238,0.12);
       --orange: #F97316;
+      --orange-dim: rgba(249,115,22,0.12);
       --green: #22C55E;
+      --green-dim: rgba(34,197,94,0.12);
       --red: #EF4444;
+      --red-dim: rgba(239,68,68,0.12);
       --purple: #A78BFA;
-      --text: #F1F5F9;
-      --text-secondary: rgba(255,255,255,0.65);
-      --text-muted: rgba(255,255,255,0.38);
-      --text-code: #E2E8F0;
+      --purple-dim: rgba(167,139,250,0.12);
+      --text: #E8ECF4;
+      --text-secondary: rgba(255,255,255,0.55);
+      --text-muted: rgba(255,255,255,0.30);
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+      --nav-h: 64px;
+      --max-w: 860px;
     }
 
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
 
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: var(--font-sans);
       background: var(--bg-deep);
       color: var(--text);
       line-height: 1.7;
       overflow-x: hidden;
     }
 
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+
+    .reveal {
+      opacity: 0; transform: translateY(24px);
+      transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
     /* NAV */
-    nav {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-      padding: 16px 40px;
-      display: flex; align-items: center; justify-content: space-between;
-      background: rgba(3,11,26,0.88); backdrop-filter: blur(20px);
+    .nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      height: var(--nav-h);
+      display: flex; align-items: center;
+      background: rgba(5,10,18,0.80);
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
       border-bottom: 1px solid var(--border);
     }
-    .nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-    .nav-logo { width: 34px; height: 34px; border-radius: 9px; background: linear-gradient(135deg, var(--accent), var(--cyan)); display: flex; align-items: center; justify-content: center; font-size: 17px; }
-    .nav-name { color: var(--text); font-size: 19px; font-weight: 800; letter-spacing: 1px; }
-    .nav-links { display: flex; align-items: center; gap: 28px; list-style: none; }
-    .nav-links a { color: var(--text-secondary); text-decoration: none; font-size: 14px; font-weight: 500; transition: color 0.2s; }
+    .nav-inner {
+      max-width: 1120px; margin: 0 auto; padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between; width: 100%;
+    }
+    .nav-brand {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none; color: var(--text);
+    }
+    .nav-logo { width: 32px; height: 32px; }
+    .nav-wordmark { font-size: 17px; font-weight: 800; letter-spacing: 1.2px; }
+    .nav-links {
+      display: flex; align-items: center; gap: 32px; list-style: none;
+    }
+    .nav-links a {
+      color: var(--text-secondary); text-decoration: none;
+      font-size: 13.5px; font-weight: 500; transition: color 0.2s;
+    }
     .nav-links a:hover { color: var(--text); }
     .nav-links a.active { color: var(--cyan); }
-    .nav-cta { padding: 9px 20px; background: var(--accent); color: var(--text) !important; border-radius: 9px; font-weight: 700 !important; }
-    .nav-cta:hover { background: var(--accent-dark); }
+    .nav-cta {
+      padding: 8px 20px;
+      background: var(--text);
+      color: var(--bg-deep) !important;
+      border-radius: 8px;
+      font-weight: 700 !important; font-size: 13px !important;
+      transition: opacity 0.2s;
+    }
+    .nav-cta:hover { opacity: 0.9; }
+    .nav-toggle {
+      display: none; background: none; border: none; cursor: pointer; padding: 8px;
+    }
+    .nav-toggle svg { display: block; }
 
-    /* LAYOUT */
-    .page { max-width: 900px; margin: 0 auto; padding: 120px 28px 80px; }
+    /* PAGE */
+    .page {
+      max-width: var(--max-w); margin: 0 auto;
+      padding: calc(var(--nav-h) + 56px) 24px 80px;
+    }
     .page-header { margin-bottom: 56px; }
-    .page-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--cyan); margin-bottom: 12px; }
-    .page-title { font-size: clamp(32px, 5vw, 48px); font-weight: 900; letter-spacing: -1.5px; margin-bottom: 12px; }
-    .page-sub { font-size: 16px; color: var(--text-secondary); max-width: 640px; }
+    .page-eyebrow {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 2px; text-transform: uppercase;
+      color: var(--cyan); margin-bottom: 14px;
+    }
+    .page-eyebrow::before {
+      content: ''; width: 16px; height: 1px; background: var(--cyan);
+    }
+    .page-title {
+      font-size: clamp(28px, 4.5vw, 44px);
+      font-weight: 900; letter-spacing: -1.5px; margin-bottom: 10px;
+    }
+    .page-sub { font-size: 15px; color: var(--text-secondary); max-width: 560px; }
 
-    /* VERSION BLOCK */
+    /* VERSION */
     .version { margin-bottom: 64px; }
-    .version-header { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
-    .version-tag { font-size: 28px; font-weight: 900; letter-spacing: -0.5px; }
-    .version-date { font-size: 13px; color: var(--text-muted); font-weight: 500; }
-    .version-badge { padding: 4px 12px; border-radius: 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; }
-    .badge-latest { background: rgba(34,197,94,0.15); color: var(--green); }
-    .badge-breaking { background: rgba(239,68,68,0.15); color: var(--red); }
-    .version-summary { font-size: 15px; color: var(--text-secondary); margin: 16px 0 24px; line-height: 1.8; }
+    .version-header {
+      display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+      margin-bottom: 8px; padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .version-tag { font-size: 26px; font-weight: 900; letter-spacing: -0.5px; font-family: var(--font-mono); }
+    .version-date { font-size: 12px; color: var(--text-muted); font-weight: 500; font-family: var(--font-mono); }
+    .badge {
+      padding: 3px 10px; border-radius: 6px;
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 0.8px; text-transform: uppercase;
+    }
+    .badge-latest { background: var(--green-dim); color: var(--green); }
+    .badge-breaking { background: var(--red-dim); color: var(--red); }
+    .version-summary {
+      font-size: 14px; color: var(--text-secondary);
+      margin: 16px 0 28px; line-height: 1.8;
+    }
 
     /* CHANGE GROUP */
-    .change-group { margin-bottom: 28px; }
-    .change-group-title { font-size: 13px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
-    .cg-dot { width: 8px; height: 8px; border-radius: 4px; }
-    .cg-new .cg-dot { background: var(--green); }
-    .cg-new .change-group-title { color: var(--green); }
-    .cg-changed .cg-dot { background: var(--orange); }
-    .cg-changed .change-group-title { color: var(--orange); }
-    .cg-fixed .cg-dot { background: var(--accent); }
-    .cg-fixed .change-group-title { color: var(--accent); }
-    .cg-breaking .cg-dot { background: var(--red); }
-    .cg-breaking .change-group-title { color: var(--red); }
-    .cg-refs .cg-dot { background: var(--purple); }
-    .cg-refs .change-group-title { color: var(--purple); }
+    .cg { margin-bottom: 28px; }
+    .cg-title {
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 1.5px; text-transform: uppercase;
+      margin-bottom: 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .cg-dot { width: 7px; height: 7px; border-radius: 50%; }
+    .cg-new .cg-dot { background: var(--green); }   .cg-new .cg-title { color: var(--green); }
+    .cg-changed .cg-dot { background: var(--orange); } .cg-changed .cg-title { color: var(--orange); }
+    .cg-fixed .cg-dot { background: var(--accent); }   .cg-fixed .cg-title { color: var(--accent); }
+    .cg-breaking .cg-dot { background: var(--red); }  .cg-breaking .cg-title { color: var(--red); }
+    .cg-refs .cg-dot { background: var(--purple); }   .cg-refs .cg-title { color: var(--purple); }
 
-    .change-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
-    .change-list li { padding: 12px 16px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-card); font-size: 14px; line-height: 1.7; transition: border-color 0.2s; }
-    .change-list li:hover { border-color: var(--border-bright); }
-    .change-list li strong { color: var(--text); }
-    .change-list li code { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; background: var(--bg-code); padding: 2px 6px; border-radius: 4px; color: var(--cyan); }
+    .cl { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .cl li {
+      padding: 14px 18px; border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      font-size: 13.5px; line-height: 1.75;
+      transition: border-color 0.2s;
+    }
+    .cl li:hover { border-color: var(--border-hover); }
+    .cl li strong { color: var(--text); }
+    .cl li code {
+      font-family: var(--font-mono); font-size: 12px;
+      background: var(--bg-code); padding: 2px 6px; border-radius: 4px;
+      color: var(--cyan);
+    }
 
-    /* FORMULA BLOCK */
-    .formula-block { margin: 20px 0; padding: 20px 24px; border-radius: 14px; border: 1px solid var(--border); background: var(--bg-card); overflow-x: auto; }
-    .formula-block .formula-label { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px; }
+    /* FORMULA */
+    .formula {
+      margin: 16px 0; padding: 18px 20px; border-radius: 12px;
+      border: 1px solid var(--border); background: var(--bg-card);
+      overflow-x: auto;
+    }
+    .formula-label {
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 1px; text-transform: uppercase;
+      color: var(--text-muted); margin-bottom: 10px;
+    }
+    .formula-note {
+      font-size: 11.5px; color: var(--text-muted); margin-top: 8px; line-height: 1.6;
+    }
 
     /* TABLE */
-    .release-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
-    .release-table th { text-align: left; padding: 10px 14px; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); border-bottom: 1px solid var(--border-bright); }
-    .release-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text-secondary); }
-    .release-table tr:hover td { background: var(--bg-card); }
-    .release-table code { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--cyan); }
+    .rtable { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 12.5px; }
+    .rtable th {
+      text-align: left; padding: 8px 12px;
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 1px; text-transform: uppercase;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-hover);
+    }
+    .rtable td {
+      padding: 8px 12px; border-bottom: 1px solid var(--border);
+      color: var(--text-secondary);
+    }
+    .rtable tr:hover td { background: var(--bg-card); }
+    .rtable code {
+      font-family: var(--font-mono); font-size: 11.5px; color: var(--cyan);
+    }
 
-    /* DIVIDER */
-    .release-divider { border: none; border-top: 1px solid var(--border); margin: 48px 0; }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 56px 0; }
 
     /* FOOTER */
-    footer { padding: 36px 28px; border-top: 1px solid var(--border); text-align: center; }
-    .footer-inner { max-width: 900px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
-    .footer-copy { font-size: 13px; color: var(--text-muted); }
+    .footer {
+      padding: 32px 24px; border-top: 1px solid var(--border);
+    }
+    .footer-inner {
+      max-width: var(--max-w); margin: 0 auto;
+      display: flex; justify-content: space-between;
+      align-items: center; flex-wrap: wrap; gap: 12px;
+    }
+    .footer-copy { font-size: 12px; color: var(--text-muted); }
     .footer-links { display: flex; gap: 20px; list-style: none; }
-    .footer-links a { font-size: 13px; color: var(--text-muted); text-decoration: none; }
+    .footer-links a {
+      font-size: 12px; color: var(--text-muted);
+      text-decoration: none; transition: color 0.2s;
+    }
     .footer-links a:hover { color: var(--text-secondary); }
 
-    /* MathJax dark mode override */
+    /* MathJax */
     mjx-container[jax="SVG"] { color: var(--text) !important; }
     mjx-container[jax="SVG"] svg { fill: var(--text); }
 
     @media (max-width: 768px) {
-      nav { padding: 12px 16px; }
-      .nav-links li:nth-child(-n+3) { display: none; }
-      .page { padding: 100px 16px 60px; }
+      :root { --nav-h: 56px; }
+      .nav-links { display: none; }
+      .nav-links.open {
+        display: flex; flex-direction: column;
+        position: fixed; top: var(--nav-h); left: 0; right: 0;
+        background: rgba(5,10,18,0.95);
+        backdrop-filter: blur(20px);
+        padding: 24px; border-bottom: 1px solid var(--border); gap: 20px;
+      }
+      .nav-toggle { display: block; }
+      .page { padding: calc(var(--nav-h) + 32px) 16px 60px; }
       .version-header { flex-direction: column; gap: 8px; }
+      .footer-inner { flex-direction: column; text-align: center; }
     }
   </style>
 </head>
 <body>
 
-  <nav>
+<nav class="nav">
+  <div class="nav-inner">
     <a href="index.html" class="nav-brand">
-      <div class="nav-logo">&#x1F3CD;&#xFE0F;</div>
-      <span class="nav-name">MOTOMAP</span>
+      <svg class="nav-logo" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="32" height="32" rx="8" fill="url(#lg2)"/>
+        <path d="M9 22V12l4 6 4-6v10" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M21 12a2 2 0 1 1 0 4 2 2 0 0 1 0-4zm0 6v4" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+        <defs><linearGradient id="lg2" x1="0" y1="0" x2="32" y2="32"><stop stop-color="#3B82F6"/><stop offset="1" stop-color="#22D3EE"/></linearGradient></defs>
+      </svg>
+      <span class="nav-wordmark">MOTOMAP</span>
     </a>
+    <button class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')" aria-label="Menu">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 5h14M3 10h14M3 15h14" stroke="#E8ECF4" stroke-width="1.5" stroke-linecap="round"/></svg>
+    </button>
     <ul class="nav-links">
-      <li><a href="index.html">Ana Sayfa</a></li>
-      <li><a href="index.html#features">Ozellikler</a></li>
+      <li><a href="index.html">Home</a></li>
+      <li><a href="index.html#features">Features</a></li>
       <li><a href="releases.html" class="active">Releases</a></li>
-      <li><a href="https://github.com/ali-osman-de/motomap" class="nav-cta">GitHub</a></li>
+      <li><a href="https://github.com/alipasha03/motomap" class="nav-cta">GitHub</a></li>
     </ul>
-  </nav>
+  </div>
+</nav>
 
-  <div class="page">
+<div class="page">
 
-    <div class="page-header">
-      <div class="page-eyebrow">Release Notes</div>
-      <h1 class="page-title">What's New in MotoMap</h1>
-      <p class="page-sub">Algorithm changes, formula derivations, and version history. All LaTeX formulas rendered in dark theme.</p>
-    </div>
-
-    <!-- ============================================================ -->
-    <!-- v0.5.0 -->
-    <!-- ============================================================ -->
-    <article class="version" id="v0.5.0">
-      <div class="version-header">
-        <span class="version-tag">v0.5.0</span>
-        <span class="version-date">April 11, 2026</span>
-        <span class="version-badge badge-latest">Latest</span>
-        <span class="version-badge badge-breaking">Breaking</span>
-      </div>
-
-      <p class="version-summary">
-        Complete rewrite of the speed estimation engine. The flat multiplier model
-        has been replaced with a five-layer system grounded in the
-        <strong>Highway Capacity Manual (HCM)</strong>,
-        <strong>BPR volume-delay function</strong>, and motorcycle
-        <strong>lane-filtering research</strong>. The algorithm is now
-        real-time ready -- when a traffic feed populates per-edge V/C ratios,
-        congestion-adjusted routing activates automatically.
-      </p>
-
-      <!-- NEW -->
-      <div class="change-group cg-new">
-        <div class="change-group-title"><span class="cg-dot"></span> New Features</div>
-        <ul class="change-list">
-          <li>
-            <strong>BPR Volume-Delay Function</strong> -- Traffic congestion modeled via the
-            Bureau of Public Roads (1964) function with per-road-class <code>alpha</code> and
-            <code>beta</code> parameters.
-            <div class="formula-block">
-              <div class="formula-label">BPR Link Cost Function</div>
-              $$ t(V) = t_{ff} \cdot \left[1 + \alpha \cdot \left(\frac{V}{C}\right)^{\beta}\right] $$
-              <p style="font-size:12px;color:var(--text-muted);margin-top:8px;">
-                where $V$ = traffic volume (veh/h), $C$ = practical capacity,
-                $t_{ff}$ = free-flow travel time,
-                $\alpha \in [0.15, 0.50]$, $\beta \in [3.0, 4.0]$ per road class.
-              </p>
-            </div>
-          </li>
-          <li>
-            <strong>Motorcycle Lane-Filtering Speed Model</strong> -- When congestion exceeds
-            $V/C > 0.60$ and the road has $\geq 2$ forward lanes, motorcycles receive a speed
-            bonus over car traffic based on UC Berkeley SafeTREC research.
-            <div class="formula-block">
-              <div class="formula-label">Lane-Filtering Speed</div>
-              $$ V_{moto} = \begin{cases}
-                V_{car} + 5 & n_{lane} = 1 \\
-                V_{car} + 15 & n_{lane} = 2 \\
-                V_{car} + 20 & n_{lane} \geq 3
-              \end{cases} $$
-              <p style="font-size:12px;color:var(--text-muted);margin-top:8px;">
-                Activated only when $V/C > 0.60$. Floor: $V_{moto} \geq 15$ km/h.
-              </p>
-            </div>
-          </li>
-          <li>
-            <strong>Road-Class Free-Flow Speed Factors</strong> -- Each highway type now has
-            its own fraction of posted speed achievable under free-flow conditions, following
-            HCM 6th Ed. Chapter 23 methodology.
-            <div class="formula-block">
-              <div class="formula-label">Effective Free-Flow Speed</div>
-              $$ V_{ff} = V_{posted} \times f_{class} \times f_{surface} \times f_{grade} \times f_{global} $$
-            </div>
-          </li>
-          <li>
-            <strong>Surface-Type Speed Reduction</strong> -- 20 OSM surface types mapped to
-            motorcycle-specific speed factors. Gravel ($f = 0.45$), cobblestone ($f = 0.55$),
-            and mud ($f = 0.15$) dramatically reduce speed compared to asphalt ($f = 1.0$).
-          </li>
-          <li>
-            <strong>Grade Kinematic Speed Reduction</strong> -- Steep grades now reduce the
-            <em>base speed</em>, not just the post-hoc cost. Follows simplified HCM Exhibit 23-8:
-            <div class="formula-block">
-              <div class="formula-label">Grade Factor</div>
-              $$ f_{grade} = \max\!\left(0.40,\; 1.0 - 0.35 \times |g|\right) $$
-              <p style="font-size:12px;color:var(--text-muted);margin-top:8px;">
-                A 10% grade ($|g| = 0.10$) reduces free-flow speed by 3.5%.
-                A 15% grade reduces it by 5.25%. Floor at 40% of posted speed.
-              </p>
-            </div>
-          </li>
-          <li>
-            <strong>Per-Class Intersection Delay</strong> -- Motorways: 0 s, primaries: 8 s,
-            residential: 3 s. Replaces the previous flat 2 s on every edge.
-            Based on HCM Chapter 19 control-delay methodology.
-          </li>
-          <li>
-            <strong>Real-Time Traffic Integration Path</strong> -- V/C ratio can come from
-            <code>edge_data["vc_ratio"]</code> (live feed),
-            <code>MOTOMAP_VC_RATIO</code> env var (testing), or statistical peak-hour
-            defaults (planning mode). The architecture is plug-and-play for IBB Open Data,
-            Google Roads API, TomTom, or HERE feeds.
-          </li>
-          <li>
-            <strong>Peak-Hour Statistical V/C Ratios</strong> -- When no live traffic is available,
-            the model uses typical Turkish urban peak V/C ratios per road class
-            (e.g., motorway 0.75, primary 0.85, residential 0.40).
-          </li>
-        </ul>
-      </div>
-
-      <!-- CHANGED -->
-      <div class="change-group cg-changed">
-        <div class="change-group-title"><span class="cg-dot"></span> Changed</div>
-        <ul class="change-list">
-          <li>
-            <strong><code>compute_edge_travel_time()</code></strong> -- Completely rewritten.
-            Now calls <code>_effective_speed_kmh()</code> (5-layer model) and
-            <code>_intersection_delay()</code> instead of the old
-            <code>maxspeed * speed_factor / 3.6 + 2.0</code>.
-          </li>
-          <li>
-            <strong><code>RoutingAlgorithmProfile</code></strong> -- Added 7 new fields:
-            <code>bpr_alpha</code>, <code>bpr_beta</code>,
-            <code>road_capacity_per_lane</code>, <code>peak_hour_vc_ratio</code>,
-            <code>lane_filter_speed_bonus</code>, <code>lane_filter_vc_threshold</code>,
-            <code>lane_filter_min_speed_kmh</code>.
-          </li>
-          <li>
-            <strong><code>RuntimeCalibration</code></strong> -- Added
-            <code>vc_ratio_override</code> field, populated from
-            <code>MOTOMAP_VC_RATIO</code> env var.
-          </li>
-          <li>
-            <strong><code>_graph_cache_token()</code></strong> -- Now includes
-            <code>surface</code> in the hash, so surface tag edits properly invalidate caches.
-          </li>
-        </ul>
-      </div>
-
-      <!-- FIXED -->
-      <div class="change-group cg-fixed">
-        <div class="change-group-title"><span class="cg-dot"></span> Fixed</div>
-        <ul class="change-list">
-          <li>
-            <strong>CC restriction expanded to 125 cc</strong> -- Turkish law
-            (Karayollari Trafik Yonetmeligi, Madde 38) and EU Directive 2006/126/EC
-            prohibit motorcycles below 125 cc from motorways and expressways. Previously
-            only $\leq 50$ cc were restricted.
-            <div class="formula-block">
-              <div class="formula-label">Highway Restriction Penalty</div>
-              $$ C_{highway}(e) = \begin{cases}
-                10^6 & CC < 125 \text{ and } e \in \{\text{motorway, trunk}\} \\
-                1.0 & \text{otherwise}
-              \end{cases} $$
-            </div>
-          </li>
-          <li>
-            <strong>Surface type was computed but never used</strong> -- <code>fill_edge_defaults()</code>
-            wrote <code>surface</code> to every edge, but <code>compute_edge_travel_time()</code>
-            never read it. Now integrated as $f_{surface}$ in the speed model.
-          </li>
-          <li>
-            <strong>Flat speed factor produced absurd speeds</strong> -- Motorway at 120 km/h
-            was reduced to 66 km/h (same ratio as living_street 20 &rarr; 11 km/h). Now each
-            road class has its own free-flow factor.
-          </li>
-          <li>
-            <strong>Cache invalidation missed surface changes</strong> -- Editing an edge's
-            <code>surface</code> tag did not invalidate cached travel times.
-          </li>
-        </ul>
-      </div>
-
-      <!-- BREAKING -->
-      <div class="change-group cg-breaking">
-        <div class="change-group-title"><span class="cg-dot"></span> Breaking Changes</div>
-        <ul class="change-list">
-          <li>
-            <strong>Travel time values changed</strong> -- All edge travel times differ from v0.4.0
-            due to the new multi-factor speed model. Cached route benchmarks and comparison
-            baselines must be regenerated.
-          </li>
-          <li>
-            <strong>Motorcycles 51--124 cc are now banned from motorways</strong> --
-            Routes for these displacements will avoid motorways and expressways.
-            Previously only $\leq 50$ cc were restricted.
-          </li>
-        </ul>
-      </div>
-
-      <!-- BPR PARAMETERS TABLE -->
-      <h3 style="font-size:16px;font-weight:800;margin:28px 0 12px;">BPR Parameters by Road Class</h3>
-      <table class="release-table">
-        <thead>
-          <tr><th>Highway</th><th>$\alpha$</th><th>$\beta$</th><th>Capacity (veh/h/lane)</th><th>Peak V/C</th></tr>
-        </thead>
-        <tbody>
-          <tr><td><code>motorway</code></td><td>0.15</td><td>4.0</td><td>2200</td><td>0.75</td></tr>
-          <tr><td><code>trunk</code></td><td>0.20</td><td>4.0</td><td>2000</td><td>0.80</td></tr>
-          <tr><td><code>primary</code></td><td>0.25</td><td>4.0</td><td>1000</td><td>0.85</td></tr>
-          <tr><td><code>secondary</code></td><td>0.30</td><td>4.0</td><td>800</td><td>0.75</td></tr>
-          <tr><td><code>tertiary</code></td><td>0.35</td><td>4.0</td><td>600</td><td>0.65</td></tr>
-          <tr><td><code>residential</code></td><td>0.40</td><td>3.0</td><td>400</td><td>0.40</td></tr>
-          <tr><td><code>living_street</code></td><td>0.50</td><td>3.0</td><td>200</td><td>0.25</td></tr>
-          <tr><td><code>service</code></td><td>0.50</td><td>3.0</td><td>300</td><td>0.30</td></tr>
-        </tbody>
-      </table>
-
-      <!-- SURFACE TABLE -->
-      <h3 style="font-size:16px;font-weight:800;margin:28px 0 12px;">Surface Speed Factors (Motorcycle)</h3>
-      <table class="release-table">
-        <thead>
-          <tr><th>Surface</th><th>$f_{surface}$</th><th>Surface</th><th>$f_{surface}$</th></tr>
-        </thead>
-        <tbody>
-          <tr><td><code>asphalt</code></td><td>1.00</td><td><code>compacted</code></td><td>0.60</td></tr>
-          <tr><td><code>concrete</code></td><td>0.95</td><td><code>fine_gravel</code></td><td>0.55</td></tr>
-          <tr><td><code>paved</code></td><td>0.95</td><td><code>gravel</code></td><td>0.45</td></tr>
-          <tr><td><code>paving_stones</code></td><td>0.70</td><td><code>unpaved</code></td><td>0.40</td></tr>
-          <tr><td><code>sett</code></td><td>0.65</td><td><code>dirt / earth</code></td><td>0.35</td></tr>
-          <tr><td><code>cobblestone</code></td><td>0.55</td><td><code>sand</code></td><td>0.20</td></tr>
-          <tr><td><code>metal</code></td><td>0.85</td><td><code>mud</code></td><td>0.15</td></tr>
-          <tr><td><code>wood</code></td><td>0.70</td><td><code>grass</code></td><td>0.25</td></tr>
-        </tbody>
-      </table>
-
-      <!-- REFERENCES -->
-      <div class="change-group cg-refs">
-        <div class="change-group-title"><span class="cg-dot"></span> References</div>
-        <ul class="change-list">
-          <li>Bureau of Public Roads (1964). <em>Traffic Assignment Manual.</em> US Dept. of Commerce, Washington, DC.</li>
-          <li>Transportation Research Board (2016). <em>Highway Capacity Manual, 6th Edition.</em> Ch. 12, 19, 23.</li>
-          <li>Gore, N. &amp; Arkatkar, S. (2022). "Modified BPR Link Function." <em>TRR</em> 2677(5). DOI: <a href="https://doi.org/10.1177/03611981221138511" style="color:var(--accent)">10.1177/03611981221138511</a></li>
-          <li>Spiess, H. (1990). "Conical Volume-Delay Functions." <em>Transportation Science</em> 24(2). DOI: <a href="https://doi.org/10.1287/trsc.24.2.153" style="color:var(--accent)">10.1287/trsc.24.2.153</a></li>
-          <li>Rice, T. (2015). "Motorcycle Lane-splitting and Safety in California." UC Berkeley SafeTREC.</li>
-          <li>Wiley (2022). "Lane-Filtering Behavior at Signalized Urban Intersections." <em>J. Adv. Transportation</em> 5662117. DOI: <a href="https://doi.org/10.1155/2022/5662117" style="color:var(--accent)">10.1155/2022/5662117</a></li>
-          <li>FHWA (2018). <em>Simplified Highway Capacity Calculation Method.</em> PL-18-003.</li>
-          <li>T.C. Icisleri Bakanligi. <em>Karayollari Trafik Yonetmeligi</em>, Madde 38.</li>
-          <li>EU Directive 2006/126/EC on driving licences, Article 4.</li>
-          <li>OSM Wiki: <a href="https://wiki.openstreetmap.org/wiki/Key:surface" style="color:var(--accent)">Key:surface</a></li>
-          <li>OSRM Issue #389: <a href="https://github.com/Project-OSRM/osrm-backend/issues/389" style="color:var(--accent)">Penalty for unpaved surface</a></li>
-        </ul>
-      </div>
-    </article>
-
-    <hr class="release-divider" />
-
-    <!-- ============================================================ -->
-    <!-- v0.4.0 -->
-    <!-- ============================================================ -->
-    <article class="version" id="v0.4.0">
-      <div class="version-header">
-        <span class="version-tag">v0.4.0</span>
-        <span class="version-date">March 6, 2026</span>
-      </div>
-      <p class="version-summary">
-        Initial public release of the motorcycle routing engine. Bidirectional Dijkstra
-        search, toll-aware routing, curvature and risk analysis, three riding modes,
-        and engine displacement (CC) penalties.
-      </p>
-
-      <div class="change-group cg-new">
-        <div class="change-group-title"><span class="cg-dot"></span> Highlights</div>
-        <ul class="change-list">
-          <li><strong>Bidirectional Dijkstra</strong> with precomputed indexed adjacency for fast repeated queries.</li>
-          <li><strong>Three riding modes:</strong> Standart (commute), Viraj Keyfi (curvy), Guvenli (safe).</li>
-          <li>
-            <strong>Curvature analysis</strong> via vectorized angle computation with fun/danger/hairpin classification.
-            <div class="formula-block">
-              <div class="formula-label">Curvature Score (chunk-normalized)</div>
-              $$ \kappa = \text{mean}\!\left(\frac{fun\_ratio_i}{1 + danger\_ratio_i}\right) $$
-            </div>
-          </li>
-          <li>
-            <strong>Engine displacement penalties</strong> -- Three-tier CC-aware slope multiplier.
-            <div class="formula-block">
-              <div class="formula-label">Grade Penalty (CC-aware)</div>
-              $$ C_{grade}(e) = \begin{cases}
-                6.0 & CC \leq 50,\; |g| > 0.12 \\
-                2.0 & CC < 250,\; |g| > 0.12 \\
-                1.35 & CC \geq 250,\; |g| > 0.14 \\
-                1.0 & \text{otherwise}
-              \end{cases} $$
-            </div>
-          </li>
-          <li><strong>Toll-aware routing</strong> -- Computes both toll-allowed and toll-free alternatives in one call.</li>
-          <li><strong>Elevation fallback chain</strong> -- Google API &rarr; OpenTopo &rarr; degrade mode (elevation = 0).</li>
-          <li><strong>1000 randomized shortest-path tests</strong> verifying equivalence with NetworkX.</li>
-        </ul>
-      </div>
-    </article>
-
+  <div class="page-header reveal">
+    <div class="page-eyebrow">Release Notes</div>
+    <h1 class="page-title">What's New in MotoMap</h1>
+    <p class="page-sub">Algorithm changes, formula derivations, and version history. LaTeX formulas rendered in dark theme via MathJax.</p>
   </div>
 
-  <footer>
-    <div class="footer-inner">
-      <span class="footer-copy">&copy; 2026 MotoMap. All rights reserved.</span>
-      <ul class="footer-links">
-        <li><a href="https://github.com/ali-osman-de/motomap">GitHub</a></li>
-        <li><a href="https://github.com/ali-osman-de/motomap/blob/main/LICENSE">License</a></li>
-        <li><a href="index.html">Home</a></li>
+  <!-- ======== v0.5.0 ======== -->
+  <article class="version reveal" id="v0.5.0">
+    <div class="version-header">
+      <span class="version-tag">v0.5.0</span>
+      <span class="version-date">2026-04-11</span>
+      <span class="badge badge-latest">Latest</span>
+      <span class="badge badge-breaking">Breaking</span>
+    </div>
+
+    <p class="version-summary">
+      Complete rewrite of the speed estimation engine. The flat multiplier model
+      has been replaced with a five-layer system grounded in the
+      <strong>Highway Capacity Manual (HCM)</strong>,
+      <strong>BPR volume-delay function</strong>, and motorcycle
+      <strong>lane-filtering research</strong>. The algorithm is now
+      real-time ready &mdash; when a traffic feed populates per-edge V/C ratios,
+      congestion-adjusted routing activates automatically.
+    </p>
+
+    <!-- NEW -->
+    <div class="cg cg-new">
+      <div class="cg-title"><span class="cg-dot"></span> New Features</div>
+      <ul class="cl">
+        <li>
+          <strong>BPR Volume-Delay Function</strong> &mdash; Traffic congestion modeled via the
+          Bureau of Public Roads (1964) function with per-road-class <code>alpha</code> and
+          <code>beta</code> parameters.
+          <div class="formula">
+            <div class="formula-label">BPR Link Cost Function</div>
+            $$ t(V) = t_{ff} \cdot \left[1 + \alpha \cdot \left(\frac{V}{C}\right)^{\beta}\right] $$
+            <p class="formula-note">
+              where $V$ = traffic volume (veh/h), $C$ = practical capacity,
+              $t_{ff}$ = free-flow travel time,
+              $\alpha \in [0.15, 0.50]$, $\beta \in [3.0, 4.0]$ per road class.
+            </p>
+          </div>
+        </li>
+        <li>
+          <strong>Motorcycle Lane-Filtering Speed Model</strong> &mdash; When congestion exceeds
+          $V/C > 0.60$ and the road has $\geq 2$ forward lanes, motorcycles receive a speed
+          bonus over car traffic based on UC Berkeley SafeTREC research.
+          <div class="formula">
+            <div class="formula-label">Lane-Filtering Speed</div>
+            $$ V_{moto} = \begin{cases}
+              V_{car} + 5 & n_{lane} = 1 \\
+              V_{car} + 15 & n_{lane} = 2 \\
+              V_{car} + 20 & n_{lane} \geq 3
+            \end{cases} $$
+            <p class="formula-note">
+              Activated only when $V/C > 0.60$. Floor: $V_{moto} \geq 15$ km/h.
+            </p>
+          </div>
+        </li>
+        <li>
+          <strong>Road-Class Free-Flow Speed Factors</strong> &mdash; Each highway type now has
+          its own fraction of posted speed achievable under free-flow conditions, following
+          HCM 6th Ed. Chapter 23 methodology.
+          <div class="formula">
+            <div class="formula-label">Effective Free-Flow Speed</div>
+            $$ V_{ff} = V_{posted} \times f_{class} \times f_{surface} \times f_{grade} \times f_{global} $$
+          </div>
+        </li>
+        <li>
+          <strong>Surface-Type Speed Reduction</strong> &mdash; 20 OSM surface types mapped to
+          motorcycle-specific speed factors. Gravel ($f = 0.45$), cobblestone ($f = 0.55$),
+          and mud ($f = 0.15$) dramatically reduce speed compared to asphalt ($f = 1.0$).
+        </li>
+        <li>
+          <strong>Grade Kinematic Speed Reduction</strong> &mdash; Steep grades now reduce the
+          <em>base speed</em>, not just the post-hoc cost. Follows simplified HCM Exhibit 23-8:
+          <div class="formula">
+            <div class="formula-label">Grade Factor</div>
+            $$ f_{grade} = \max\!\left(0.40,\; 1.0 - 0.35 \times |g|\right) $$
+            <p class="formula-note">
+              A 10% grade ($|g| = 0.10$) reduces free-flow speed by 3.5%.
+              A 15% grade reduces it by 5.25%. Floor at 40% of posted speed.
+            </p>
+          </div>
+        </li>
+        <li>
+          <strong>Per-Class Intersection Delay</strong> &mdash; Motorways: 0 s, primaries: 8 s,
+          residential: 3 s. Replaces the previous flat 2 s on every edge.
+          Based on HCM Chapter 19 control-delay methodology.
+        </li>
+        <li>
+          <strong>Real-Time Traffic Integration Path</strong> &mdash; V/C ratio can come from
+          <code>edge_data["vc_ratio"]</code> (live feed),
+          <code>MOTOMAP_VC_RATIO</code> env var (testing), or statistical peak-hour
+          defaults (planning mode).
+        </li>
+        <li>
+          <strong>Peak-Hour Statistical V/C Ratios</strong> &mdash; When no live traffic is available,
+          the model uses typical Turkish urban peak V/C ratios per road class
+          (e.g., motorway 0.75, primary 0.85, residential 0.40).
+        </li>
       </ul>
     </div>
-  </footer>
+
+    <!-- CHANGED -->
+    <div class="cg cg-changed">
+      <div class="cg-title"><span class="cg-dot"></span> Changed</div>
+      <ul class="cl">
+        <li>
+          <strong><code>compute_edge_travel_time()</code></strong> &mdash; Completely rewritten.
+          Now calls <code>_effective_speed_kmh()</code> (5-layer model) and
+          <code>_intersection_delay()</code> instead of the old
+          <code>maxspeed * speed_factor / 3.6 + 2.0</code>.
+        </li>
+        <li>
+          <strong><code>RoutingAlgorithmProfile</code></strong> &mdash; Added 7 new fields:
+          <code>bpr_alpha</code>, <code>bpr_beta</code>,
+          <code>road_capacity_per_lane</code>, <code>peak_hour_vc_ratio</code>,
+          <code>lane_filter_speed_bonus</code>, <code>lane_filter_vc_threshold</code>,
+          <code>lane_filter_min_speed_kmh</code>.
+        </li>
+        <li>
+          <strong><code>RuntimeCalibration</code></strong> &mdash; Added
+          <code>vc_ratio_override</code> field, populated from
+          <code>MOTOMAP_VC_RATIO</code> env var.
+        </li>
+        <li>
+          <strong><code>_graph_cache_token()</code></strong> &mdash; Now includes
+          <code>surface</code> in the hash so surface tag edits properly invalidate caches.
+        </li>
+      </ul>
+    </div>
+
+    <!-- FIXED -->
+    <div class="cg cg-fixed">
+      <div class="cg-title"><span class="cg-dot"></span> Fixed</div>
+      <ul class="cl">
+        <li>
+          <strong>CC restriction expanded to 125 cc</strong> &mdash; Turkish law
+          (Karayollari Trafik Yonetmeligi, Madde 38) and EU Directive 2006/126/EC
+          prohibit motorcycles below 125 cc from motorways and expressways. Previously
+          only $\leq 50$ cc were restricted.
+          <div class="formula">
+            <div class="formula-label">Highway Restriction Penalty</div>
+            $$ C_{highway}(e) = \begin{cases}
+              10^6 & CC &lt; 125 \text{ and } e \in \{\text{motorway, trunk}\} \\
+              1.0 & \text{otherwise}
+            \end{cases} $$
+          </div>
+        </li>
+        <li>
+          <strong>Surface type was computed but never used</strong> &mdash; <code>fill_edge_defaults()</code>
+          wrote <code>surface</code> to every edge, but <code>compute_edge_travel_time()</code>
+          never read it. Now integrated as $f_{surface}$ in the speed model.
+        </li>
+        <li>
+          <strong>Flat speed factor produced absurd speeds</strong> &mdash; Motorway at 120 km/h
+          was reduced to 66 km/h (same ratio as living_street 20 &rarr; 11 km/h). Now each
+          road class has its own free-flow factor.
+        </li>
+        <li>
+          <strong>Cache invalidation missed surface changes</strong> &mdash; Editing an edge's
+          <code>surface</code> tag did not invalidate cached travel times.
+        </li>
+      </ul>
+    </div>
+
+    <!-- BREAKING -->
+    <div class="cg cg-breaking">
+      <div class="cg-title"><span class="cg-dot"></span> Breaking Changes</div>
+      <ul class="cl">
+        <li>
+          <strong>Travel time values changed</strong> &mdash; All edge travel times differ from v0.4.0
+          due to the new multi-factor speed model. Cached route benchmarks and comparison
+          baselines must be regenerated.
+        </li>
+        <li>
+          <strong>Motorcycles 51&ndash;124 cc now banned from motorways</strong> &mdash;
+          Routes for these displacements will avoid motorways and expressways.
+          Previously only $\leq 50$ cc were restricted.
+        </li>
+      </ul>
+    </div>
+
+    <!-- BPR TABLE -->
+    <h3 style="font-size:15px;font-weight:800;margin:28px 0 12px;">BPR Parameters by Road Class</h3>
+    <div style="overflow-x:auto">
+    <table class="rtable">
+      <thead>
+        <tr><th>Highway</th><th>$\alpha$</th><th>$\beta$</th><th>Capacity (veh/h/lane)</th><th>Peak V/C</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>motorway</code></td><td>0.15</td><td>4.0</td><td>2200</td><td>0.75</td></tr>
+        <tr><td><code>trunk</code></td><td>0.20</td><td>4.0</td><td>2000</td><td>0.80</td></tr>
+        <tr><td><code>primary</code></td><td>0.25</td><td>4.0</td><td>1000</td><td>0.85</td></tr>
+        <tr><td><code>secondary</code></td><td>0.30</td><td>4.0</td><td>800</td><td>0.75</td></tr>
+        <tr><td><code>tertiary</code></td><td>0.35</td><td>4.0</td><td>600</td><td>0.65</td></tr>
+        <tr><td><code>residential</code></td><td>0.40</td><td>3.0</td><td>400</td><td>0.40</td></tr>
+        <tr><td><code>living_street</code></td><td>0.50</td><td>3.0</td><td>200</td><td>0.25</td></tr>
+        <tr><td><code>service</code></td><td>0.50</td><td>3.0</td><td>300</td><td>0.30</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <!-- SURFACE TABLE -->
+    <h3 style="font-size:15px;font-weight:800;margin:28px 0 12px;">Surface Speed Factors (Motorcycle)</h3>
+    <div style="overflow-x:auto">
+    <table class="rtable">
+      <thead>
+        <tr><th>Surface</th><th>$f_{surface}$</th><th>Surface</th><th>$f_{surface}$</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>asphalt</code></td><td>1.00</td><td><code>compacted</code></td><td>0.60</td></tr>
+        <tr><td><code>concrete</code></td><td>0.95</td><td><code>fine_gravel</code></td><td>0.55</td></tr>
+        <tr><td><code>paved</code></td><td>0.95</td><td><code>gravel</code></td><td>0.45</td></tr>
+        <tr><td><code>paving_stones</code></td><td>0.70</td><td><code>unpaved</code></td><td>0.40</td></tr>
+        <tr><td><code>sett</code></td><td>0.65</td><td><code>dirt / earth</code></td><td>0.35</td></tr>
+        <tr><td><code>cobblestone</code></td><td>0.55</td><td><code>sand</code></td><td>0.20</td></tr>
+        <tr><td><code>metal</code></td><td>0.85</td><td><code>mud</code></td><td>0.15</td></tr>
+        <tr><td><code>wood</code></td><td>0.70</td><td><code>grass</code></td><td>0.25</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <!-- REFS -->
+    <div class="cg cg-refs">
+      <div class="cg-title"><span class="cg-dot"></span> References</div>
+      <ul class="cl">
+        <li>Bureau of Public Roads (1964). <em>Traffic Assignment Manual.</em> US Dept. of Commerce, Washington, DC.</li>
+        <li>Transportation Research Board (2016). <em>Highway Capacity Manual, 6th Edition.</em> Ch. 12, 19, 23.</li>
+        <li>Gore, N. &amp; Arkatkar, S. (2022). &ldquo;Modified BPR Link Function.&rdquo; <em>TRR</em> 2677(5). DOI: <a href="https://doi.org/10.1177/03611981221138511" style="color:var(--accent)">10.1177/03611981221138511</a></li>
+        <li>Spiess, H. (1990). &ldquo;Conical Volume-Delay Functions.&rdquo; <em>Transportation Science</em> 24(2). DOI: <a href="https://doi.org/10.1287/trsc.24.2.153" style="color:var(--accent)">10.1287/trsc.24.2.153</a></li>
+        <li>Rice, T. (2015). &ldquo;Motorcycle Lane-splitting and Safety in California.&rdquo; UC Berkeley SafeTREC.</li>
+        <li>Wiley (2022). &ldquo;Lane-Filtering Behavior at Signalized Urban Intersections.&rdquo; <em>J. Adv. Transportation</em> 5662117. DOI: <a href="https://doi.org/10.1155/2022/5662117" style="color:var(--accent)">10.1155/2022/5662117</a></li>
+        <li>FHWA (2018). <em>Simplified Highway Capacity Calculation Method.</em> PL-18-003.</li>
+        <li>T.C. Icisleri Bakanligi. <em>Karayollari Trafik Yonetmeligi</em>, Madde 38.</li>
+        <li>EU Directive 2006/126/EC on driving licences, Article 4.</li>
+        <li>OSM Wiki: <a href="https://wiki.openstreetmap.org/wiki/Key:surface" style="color:var(--accent)">Key:surface</a></li>
+      </ul>
+    </div>
+  </article>
+
+  <hr class="divider" />
+
+  <!-- ======== v0.4.0 ======== -->
+  <article class="version reveal" id="v0.4.0">
+    <div class="version-header">
+      <span class="version-tag">v0.4.0</span>
+      <span class="version-date">2026-03-06</span>
+    </div>
+    <p class="version-summary">
+      Initial public release of the motorcycle routing engine. Bidirectional Dijkstra
+      search, toll-aware routing, curvature and risk analysis, three riding modes,
+      and engine displacement (CC) penalties.
+    </p>
+
+    <div class="cg cg-new">
+      <div class="cg-title"><span class="cg-dot"></span> Highlights</div>
+      <ul class="cl">
+        <li><strong>Bidirectional Dijkstra</strong> with precomputed indexed adjacency for fast repeated queries.</li>
+        <li><strong>Three riding modes:</strong> Standard (commute), Twisty (curvy), Safe (cautious).</li>
+        <li>
+          <strong>Curvature analysis</strong> via vectorized angle computation with fun/danger/hairpin classification.
+          <div class="formula">
+            <div class="formula-label">Curvature Score (chunk-normalized)</div>
+            $$ \kappa = \text{mean}\!\left(\frac{fun\_ratio_i}{1 + danger\_ratio_i}\right) $$
+          </div>
+        </li>
+        <li>
+          <strong>Engine displacement penalties</strong> &mdash; Three-tier CC-aware slope multiplier.
+          <div class="formula">
+            <div class="formula-label">Grade Penalty (CC-aware)</div>
+            $$ C_{grade}(e) = \begin{cases}
+              6.0 & CC \leq 50,\; |g| > 0.12 \\
+              2.0 & CC &lt; 250,\; |g| > 0.12 \\
+              1.35 & CC \geq 250,\; |g| > 0.14 \\
+              1.0 & \text{otherwise}
+            \end{cases} $$
+          </div>
+        </li>
+        <li><strong>Toll-aware routing</strong> &mdash; Computes both toll-allowed and toll-free alternatives in one call.</li>
+        <li><strong>Elevation fallback chain</strong> &mdash; Google API &rarr; OpenTopo &rarr; degrade mode (elevation = 0).</li>
+        <li><strong>1000 randomized shortest-path tests</strong> verifying equivalence with NetworkX.</li>
+      </ul>
+    </div>
+  </article>
+
+</div>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <span class="footer-copy">&copy; 2026 MotoMap. All rights reserved.</span>
+    <ul class="footer-links">
+      <li><a href="https://github.com/alipasha03/motomap">GitHub</a></li>
+      <li><a href="https://github.com/alipasha03/motomap/blob/main/LICENSE">License</a></li>
+      <li><a href="index.html">Home</a></li>
+    </ul>
+  </div>
+</footer>
+
+<script>
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.08, rootMargin: '0px 0px -30px 0px' });
+  document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+
+  document.querySelectorAll('.nav-links a').forEach(a => {
+    a.addEventListener('click', () => document.querySelector('.nav-links').classList.remove('open'));
+  });
+</script>
 
 </body>
 </html>
