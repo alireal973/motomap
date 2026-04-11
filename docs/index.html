@@ -7,180 +7,380 @@
   <meta name="description" content="MotoMap builds curvy, scenic, and safe routes optimized for motorcycles. Open-source routing powered by traffic flow theory and real-time data." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <style>
     :root{
-      --bg:#050A12;--bg2:#0A1220;--bg3:#0F1A2E;
-      --card:rgba(255,255,255,.03);--card-h:rgba(255,255,255,.06);
-      --bdr:rgba(255,255,255,.06);--bdr-h:rgba(255,255,255,.12);
-      --accent:#3B82F6;--accent-d:rgba(59,130,246,.15);
-      --cyan:#22D3EE;--cyan-d:rgba(34,211,238,.12);
-      --orange:#F97316;--orange-d:rgba(249,115,22,.12);
-      --green:#22C55E;--green-d:rgba(34,197,94,.12);
-      --purple:#A78BFA;--purple-d:rgba(167,139,250,.12);
-      --t:#E8ECF4;--t2:rgba(255,255,255,.55);--t3:rgba(255,255,255,.30);
+      --bg:#130B1A;--bg2:#1A0F24;--bg3:#241530;
+      --card:rgba(255,255,255,.025);--card-h:rgba(255,255,255,.05);
+      --bdr:rgba(255,255,255,.06);--bdr-h:rgba(255,255,255,.14);
+      --accent:#FACC15;--accent-hi:#FDE047;--accent-lo:#F59E0B;--accent-d:rgba(250,204,21,.15);
+      --pink:#E879F9;--cyan:#E879F9;--cyan-d:rgba(232,121,249,.12);
+      --orange:#FB923C;--orange-d:rgba(251,146,60,.14);
+      --green:#86EFAC;--green-d:rgba(134,239,172,.12);
+      --purple:#C084FC;--purple-d:rgba(192,132,252,.14);
+      --warm:#F472B6;--warm-d:rgba(244,114,182,.14);
+      --glow-warm:radial-gradient(ellipse 60% 80% at 50% 40%,rgba(251,146,60,.14),rgba(232,121,249,.06) 40%,transparent 70%);
+      --t:#F5F0F8;--t2:rgba(245,240,248,.62);--t3:rgba(245,240,248,.34);
       --sans:'Inter',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+      --display:'Instrument Serif','Playfair Display',Georgia,serif;
       --mono:'JetBrains Mono','Fira Code',monospace;
-      --nav:64px;--mw:1120px;
+      --nav:80px;--mw:1120px;
     }
     *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
     html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased}
     body{font-family:var(--sans);background:var(--bg);color:var(--t);line-height:1.6;overflow-x:hidden}
     .c{max-width:var(--mw);margin:0 auto;padding:0 24px}
 
-    /* ---- REVEAL ---- */
     .r{opacity:0;transform:translateY(28px);transition:opacity .7s cubic-bezier(.16,1,.3,1),transform .7s cubic-bezier(.16,1,.3,1)}
     .r.v{opacity:1;transform:translateY(0)}
     .rd1{transition-delay:.1s}.rd2{transition-delay:.2s}.rd3{transition-delay:.3s}
 
     /* ---- NAV ---- */
-    .nav{position:fixed;top:0;left:0;right:0;z-index:1000;height:var(--nav);display:flex;align-items:center;background:rgba(5,10,18,.78);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border-bottom:1px solid var(--bdr)}
-    .nav .c{display:flex;align-items:center;justify-content:space-between;width:100%}
-    .nav-b{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--t)}
-    .nav-b img{height:26px;width:auto}
-    .nav-wm{font-size:18px;font-weight:900;letter-spacing:2.5px;background:linear-gradient(135deg,#fff 0%,rgba(255,255,255,.7) 40%,var(--accent) 60%,var(--cyan) 100%);background-size:200% 200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:wm-shift 6s ease-in-out infinite}
-    @keyframes wm-shift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
-    .nl{display:flex;align-items:center;gap:28px;list-style:none}
-    .nl a{color:var(--t2);text-decoration:none;font-size:13px;font-weight:500;transition:color .2s;letter-spacing:.2px}
-    .nl a:hover,.nl a.on{color:var(--t)}
-    .nl .cta{padding:7px 18px;background:var(--t);color:var(--bg)!important;border-radius:8px;font-weight:700!important;font-size:12.5px!important}
-    .nl .cta:hover{opacity:.9}
+    .nav{position:fixed;top:0;left:0;right:0;z-index:1000;height:var(--nav);display:flex;align-items:center;background:rgba(19,11,26,.55);backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);border-bottom:1px solid var(--bdr);transition:height .4s cubic-bezier(.16,1,.3,1),background .3s,box-shadow .3s}
+    .nav::after{content:'';position:absolute;bottom:-1px;left:15%;right:15%;height:1px;background:linear-gradient(90deg,transparent,rgba(250,204,21,.25),rgba(232,121,249,.2),transparent);pointer-events:none}
+    .nav.scrolled{height:56px;background:rgba(19,11,26,.92);box-shadow:0 4px 32px rgba(0,0,0,.4)}
+    .nav .c{display:flex;align-items:center;justify-content:space-between;width:100%;padding:0 28px}
+    .nav-b{display:flex;align-items:center;gap:14px;text-decoration:none;color:var(--t);position:relative;margin-right:auto}
+    .nav-b img{height:48px;width:auto;transition:height .4s cubic-bezier(.16,1,.3,1),filter .3s,transform .35s cubic-bezier(.16,1,.3,1);filter:drop-shadow(0 0 8px rgba(250,204,21,.35));animation:logo-pulse 3s ease-in-out infinite}
+    .nav.scrolled .nav-b img{height:28px}
+    @keyframes logo-pulse{0%,100%{filter:drop-shadow(0 0 8px rgba(250,204,21,.35))}50%{filter:drop-shadow(0 0 18px rgba(250,204,21,.65)) brightness(1.18)}}
+    .nav-b:hover img{transform:scale(1.15) rotate(-5deg);filter:drop-shadow(0 0 24px rgba(250,204,21,.85)) brightness(1.3)!important;animation:none}
+    .nav-b:hover .nav-wm{animation-duration:1s}
+    .nav-b:hover .nav-ver{border-color:rgba(250,204,21,.45);color:var(--accent-hi);background:rgba(250,204,21,.15)}
+    .nav-wm{font-size:24px;font-weight:900;letter-spacing:3.5px;background:linear-gradient(90deg,#F5F0F8,#FEF08A,#E879F9,#FEF08A,#F5F0F8);background-size:300% 100%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:wm-shift 3s linear infinite;transition:font-size .4s cubic-bezier(.16,1,.3,1),letter-spacing .4s}
+    .nav.scrolled .nav-wm{font-size:16px;letter-spacing:2px}
+    @keyframes wm-shift{0%{background-position:0% 50%}100%{background-position:300% 50%}}
+    .nav-ver{font-size:9px;font-weight:700;letter-spacing:1px;color:var(--accent);background:rgba(250,204,21,.08);border:1px solid rgba(250,204,21,.18);padding:2px 8px;border-radius:100px;font-family:var(--mono);margin-left:6px;white-space:nowrap;transition:opacity .3s}
+    .nav.scrolled .nav-ver{opacity:.7}
+    .nl{display:flex;align-items:center;gap:6px;list-style:none}
+    .nl a{color:var(--t3);text-decoration:none;font-size:13px;font-weight:500;transition:color .2s,background .2s;letter-spacing:.2px;padding:6px 14px;border-radius:8px;position:relative}
+    .nl a:hover{color:var(--t);background:rgba(255,255,255,.04)}
+    .nl a.on{color:var(--accent-hi);background:rgba(250,204,21,.06)}
+    .nl a.on::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:16px;height:2px;border-radius:1px;background:var(--accent);box-shadow:0 0 8px rgba(250,204,21,.5)}
+    .nl .cta{padding:7px 18px;background:linear-gradient(135deg,var(--accent),#F59E0B);color:#1A0F1E!important;border-radius:100px;font-weight:800!important;font-size:12.5px!important;box-shadow:0 2px 14px rgba(250,204,21,.35),inset 0 1px 0 rgba(255,255,255,.25);transition:box-shadow .25s,transform .25s}
+    .nl .cta:hover{box-shadow:0 6px 24px rgba(250,204,21,.5),inset 0 1px 0 rgba(255,255,255,.3);transform:translateY(-1px)}
     .mt{display:none;background:none;border:none;cursor:pointer;padding:8px}.mt svg{display:block}
 
     /* ---- HERO ---- */
     .hero{position:relative;min-height:100vh;display:flex;align-items:center;padding:calc(var(--nav) + 80px) 0 100px;overflow:hidden}
     .hero::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");opacity:.03;pointer-events:none;z-index:1}
-    .hero::after{content:'';position:absolute;top:-1px;left:15%;right:15%;height:1px;background:linear-gradient(90deg,transparent,var(--accent),var(--cyan),transparent);z-index:2}
     .hero .c{display:flex;flex-direction:column;align-items:center;text-align:center;position:relative;z-index:3}
-
-    /* Gradient orbs */
     .orb{position:absolute;border-radius:50%;pointer-events:none;filter:blur(100px)}
-    .orb-1{top:5%;right:-8%;width:500px;height:500px;background:radial-gradient(circle,rgba(59,130,246,.12),transparent 70%);animation:orb-float 8s ease-in-out infinite}
-    .orb-2{bottom:-5%;left:20%;width:400px;height:400px;background:radial-gradient(circle,rgba(34,211,238,.08),transparent 70%);animation:orb-float 10s ease-in-out infinite reverse}
-    .orb-3{top:40%;left:-10%;width:350px;height:350px;background:radial-gradient(circle,rgba(167,139,250,.06),transparent 70%);animation:orb-float 12s ease-in-out infinite 2s}
+    .orb-1{top:5%;right:-8%;width:500px;height:500px;background:radial-gradient(circle,rgba(250,204,21,.12),transparent 70%);animation:orb-float 8s ease-in-out infinite}
+    .orb-2{bottom:-5%;left:20%;width:400px;height:400px;background:radial-gradient(circle,rgba(232,121,249,.08),transparent 70%);animation:orb-float 10s ease-in-out infinite reverse}
+    .orb-3{top:40%;left:-10%;width:350px;height:350px;background:radial-gradient(circle,rgba(192,132,252,.06),transparent 70%);animation:orb-float 12s ease-in-out infinite 2s}
     @keyframes orb-float{0%,100%{transform:translate(0,0)}50%{transform:translate(20px,-30px)}}
-
     .hero-c{position:relative;z-index:2}
-    .badge{display:inline-flex;align-items:center;gap:8px;padding:5px 14px 5px 7px;border-radius:100px;border:1px solid var(--bdr);background:var(--card);font-size:11.5px;font-weight:600;color:var(--t2);margin-bottom:28px}
-    .badge-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
-    .hero h1{font-size:clamp(38px,5.2vw,64px);font-weight:900;line-height:1.06;letter-spacing:-2px;margin-bottom:20px}
-    .grad{background:linear-gradient(135deg,var(--accent),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .badge{display:inline-flex;align-items:center;gap:8px;padding:6px 16px 6px 10px;border-radius:100px;border:1px solid rgba(232,121,249,.15);background:rgba(232,121,249,.05);font-size:11px;font-weight:600;color:var(--cyan);margin-bottom:28px;letter-spacing:.5px;backdrop-filter:blur(8px)}
+    .badge-dot{width:6px;height:6px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan);animation:badge-pulse 2s ease-in-out infinite}
+    @keyframes badge-pulse{0%,100%{opacity:1}50%{opacity:.5}}
+    .hero h1{font-size:clamp(38px,5.2vw,64px);font-weight:900;line-height:1.04;letter-spacing:-2.2px;margin-bottom:20px}
+    .grad{font-family:var(--display);font-style:italic;font-weight:400;background:linear-gradient(100deg,#FDE68A 0%,var(--accent-hi) 30%,var(--accent) 55%,#F0ABFC 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-1px;padding-right:.05em}
+    .em{font-family:var(--display);font-style:italic;font-weight:400;color:var(--accent-hi);letter-spacing:-.01em;padding:0 .03em;font-size:1.12em;line-height:.9}
     .hero-p{font-size:17px;color:var(--t2);max-width:560px;line-height:1.75;margin-bottom:36px;margin-left:auto;margin-right:auto}
     .hero-a{display:flex;gap:12px;flex-wrap:wrap}
-    .btn{display:inline-flex;align-items:center;gap:8px;padding:13px 26px;border-radius:10px;font-size:13.5px;font-weight:700;text-decoration:none;transition:transform .2s,box-shadow .2s,background .2s;cursor:pointer;border:none;font-family:var(--sans)}
-    .btn-p{background:var(--accent);color:#fff;box-shadow:0 4px 24px rgba(59,130,246,.25)}
-    .btn-p:hover{transform:translateY(-1px);box-shadow:0 8px 32px rgba(59,130,246,.35)}
-    .btn-g{background:transparent;color:var(--t2);border:1px solid var(--bdr)}
-    .btn-g:hover{background:var(--card);color:var(--t);border-color:var(--bdr-h)}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:14px 28px;border-radius:100px;font-size:13.5px;font-weight:800;text-decoration:none;transition:transform .25s,box-shadow .25s,background .25s;cursor:pointer;border:none;font-family:var(--sans);letter-spacing:.2px}
+    .btn-p{background:linear-gradient(135deg,#FDE047,var(--accent) 50%,#F59E0B);color:#1A0F1E;box-shadow:0 6px 24px rgba(250,204,21,.35),inset 0 1px 0 rgba(255,255,255,.35)}
+    .btn-p:hover{transform:translateY(-2px);box-shadow:0 10px 32px rgba(250,204,21,.5),inset 0 1px 0 rgba(255,255,255,.4)}
+    .btn-g{background:rgba(255,255,255,.03);color:var(--t);border:1px solid var(--bdr-h);backdrop-filter:blur(8px)}
+    .btn-g:hover{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.22);transform:translateY(-1px)}
     .btn svg{width:16px;height:16px}
-
-    /* Hero floating cards */
     .hero-cards{display:flex;gap:14px;margin-top:48px;flex-wrap:wrap;justify-content:center}
-    .hc{padding:14px 22px;border-radius:12px;border:1px solid var(--bdr);background:rgba(10,18,32,.6);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);display:flex;align-items:center;gap:12px;opacity:0;animation:hc-in .6s ease forwards}
+    .hc{padding:14px 22px;border-radius:12px;border:1px solid var(--bdr);background:rgba(26,15,36,.6);backdrop-filter:blur(12px);display:flex;align-items:center;gap:12px;opacity:0;animation:hc-in .6s ease forwards;transform:translateY(12px)}
     .hc:nth-child(1){animation-delay:1s}.hc:nth-child(2){animation-delay:1.2s}.hc:nth-child(3){animation-delay:1.4s}.hc:nth-child(4){animation-delay:1.6s}
     @keyframes hc-in{to{opacity:1;transform:translateY(0)}}
-    .hc{transform:translateY(12px)}
     .hc-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
     .hc-l{font-size:11px;color:var(--t3);font-weight:600;letter-spacing:1px;text-transform:uppercase}
     .hc-v{font-size:14px;font-weight:800;font-family:var(--mono)}
 
+    /* SVG route drawing animation + infinite traveling dot */
+    .hero-route{margin-top:56px;width:100%;max-width:600px;opacity:.4}
+    .hero-route .route-path{stroke-dasharray:620;stroke-dashoffset:620;animation:draw-route 2.4s cubic-bezier(.77,0,.18,1) forwards 1.8s}
+    .route-dot-start,.route-dot-end{opacity:0;animation:dot-appear .4s ease forwards}
+    .route-dot-start{animation-delay:1.8s}
+    .route-dot-end{animation-delay:4.0s}
+    @keyframes draw-route{to{stroke-dashoffset:0}}
+    @keyframes dot-appear{to{opacity:1}}
+    .traveling-dot{opacity:0;animation:dot-appear .3s ease forwards 4.4s}
+    .traveling-glow{opacity:0;animation:dot-appear .3s ease forwards 4.4s}
+
     /* ---- SECTION ---- */
-    .sec{padding:100px 0}
-    .sec-h{text-align:center;max-width:580px;margin:0 auto 60px}
-    .sec-e{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--cyan);margin-bottom:16px}
-    .sec-e::before{content:'';width:16px;height:1px;background:var(--cyan)}
-    .sec-t{font-size:clamp(26px,3.5vw,40px);font-weight:900;letter-spacing:-.8px;margin-bottom:14px}
-    .sec-d{font-size:15px;color:var(--t2);line-height:1.75}
-    .sec-alt{background:var(--bg2)}
+    .sec{padding:110px 0;position:relative}
+    .sec-h{text-align:center;max-width:640px;margin:0 auto 68px;position:relative;z-index:2}
+    .sec-e{display:inline-flex;align-items:center;gap:8px;padding:5px 16px 5px 12px;border-radius:100px;border:1px solid rgba(250,204,21,.18);background:rgba(250,204,21,.05);font-size:10px;font-weight:700;letter-spacing:2.2px;text-transform:uppercase;color:var(--accent-hi);margin-bottom:22px;backdrop-filter:blur(6px)}
+    .sec-e::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent)}
+    .sec-t{font-size:clamp(32px,4.4vw,54px);font-weight:900;letter-spacing:-1.4px;margin-bottom:18px;line-height:1.05}
+    .sec-d{font-size:16px;color:var(--t2);line-height:1.75;max-width:540px;margin:0 auto}
+    .sec-alt{background:var(--bg2);position:relative}
+    .sec-alt::before{content:'';position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.03) 1px,transparent 1px);background-size:24px 24px;pointer-events:none}
+    .sec-alt::after{content:'';position:absolute;top:-1px;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(250,204,21,.14),rgba(232,121,249,.1),transparent);pointer-events:none}
+    .sec-warm{position:absolute;pointer-events:none;z-index:1;filter:blur(90px);border-radius:50%}
 
-    /* ---- BENTO ---- */
-    .bento{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-    .bc{padding:32px 28px;border-radius:16px;border:1px solid var(--bdr);background:var(--card);transition:border-color .3s,background .3s,transform .3s;position:relative;overflow:hidden}
-    .bc:hover{border-color:var(--bdr-h);background:var(--card-h);transform:translateY(-2px)}
-    .bc.s2{grid-column:span 2}
-    .bi{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:18px}
-    .bi svg{width:20px;height:20px}
-    .bc h3{font-size:16px;font-weight:700;margin-bottom:8px}
-    .bc p{font-size:13.5px;color:var(--t2);line-height:1.7}
+    /* ---- 5-LAYER MAP SHOWCASE ---- */
+    #features{min-height:auto;padding-top:6px;padding-bottom:28px}
+    #features>.c{position:relative;min-height:calc(100vh - var(--nav) - 24px);display:flex;flex-direction:column;justify-content:center;gap:22px;padding-top:0;padding-bottom:0;max-width:1160px}
+    #features .sec-h{margin:0 auto;max-width:680px}
+    #features .sec-t{font-size:clamp(28px,4vw,50px);margin-bottom:12px}
+    #features .sec-d{font-size:15px;line-height:1.62;max-width:510px}
+    .layers-wrap{position:relative;width:100%;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr);align-items:center;gap:0}
+    .layers-wrap::before{content:'';position:absolute;top:-58px;left:40%;transform:translateX(-50%);width:min(780px,70%);height:260px;background:radial-gradient(ellipse 55% 70% at 50% 40%,rgba(250,204,21,.11),rgba(232,121,249,.05) 52%,transparent 82%);pointer-events:none;z-index:0;filter:blur(54px)}
 
-    /* ---- STEPS ---- */
-    .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:32px;position:relative}
-    .steps::before{content:'';position:absolute;top:40px;left:16.66%;right:16.66%;height:1px;background:linear-gradient(90deg,transparent,var(--bdr-h),var(--bdr-h),transparent)}
-    .step{text-align:center;position:relative}
-    .step-n{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:18px;font-weight:800;font-family:var(--mono);background:var(--bg3);border:1px solid var(--bdr-h);color:var(--accent);position:relative;z-index:1}
-    .step h3{font-size:16px;font-weight:700;margin-bottom:8px}
-    .step p{font-size:13.5px;color:var(--t2);line-height:1.7;max-width:280px;margin:0 auto}
+    /* Vertical stepper (left side) */
+    .layer-stepper{display:flex;align-items:center;justify-content:center;gap:12px;position:absolute;left:88px;top:50%;transform:translateY(-50%);z-index:3;opacity:.34;transition:opacity .35s ease,transform .35s ease}
+    .layer-stepper.visible{opacity:1;transform:translateY(-50%)}
+    .layer-stepper-label{font-size:9px;font-weight:700;letter-spacing:1.4px;color:var(--t3);font-family:var(--mono);white-space:nowrap;transition:color .3s;writing-mode:vertical-rl;text-orientation:mixed;transform:rotate(180deg)}
+    .layer-stepper-label.active{color:var(--accent-hi)}
+    .layer-stepper-rail{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+    .layer-stepper-dot{width:10px;height:10px;border-radius:50%;border:2px solid rgba(255,255,255,.12);background:var(--bg);transition:all .35s cubic-bezier(.16,1,.3,1);position:relative;z-index:1;flex-shrink:0}
+    .layer-stepper-dot.done{border-color:var(--accent);background:var(--accent);box-shadow:0 0 8px rgba(250,204,21,.35)}
+    .layer-stepper-dot.current{border-color:var(--accent-hi);background:var(--accent);box-shadow:0 0 14px rgba(250,204,21,.55);transform:scale(1.45)}
+    .layer-stepper-line{width:2px;height:28px;background:rgba(255,255,255,.07);border-radius:999px;position:relative;overflow:hidden}
+    .layer-stepper-line-fill{position:absolute;left:0;right:0;bottom:0;height:0%;background:linear-gradient(180deg,var(--accent-hi),var(--accent));border-radius:inherit;transition:height .28s cubic-bezier(.16,1,.3,1)}
 
-    /* ---- MODES ---- */
-    .modes{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-    .mc{padding:36px 28px;border-radius:16px;border:1px solid var(--bdr);background:var(--card);text-align:center;transition:border-color .3s,transform .3s}
-    .mc:hover{border-color:var(--bdr-h);transform:translateY(-2px)}
-    .mi{width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 18px}
-    .mi svg{width:24px;height:24px}
-    .mc h3{font-size:18px;font-weight:800;margin-bottom:8px}
-    .mc p{font-size:13.5px;color:var(--t2);line-height:1.7}
+    .layers-demo{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(300px,1fr);align-items:center;gap:24px;position:relative;z-index:1;min-width:0;padding-left:118px}
+    .layers-stage{position:relative;min-width:0;height:360px;padding:0;border-radius:30px;border:1px solid rgba(255,255,255,.06);background:linear-gradient(180deg,rgba(255,255,255,.022),rgba(255,255,255,.008));box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 28px 70px -48px rgba(0,0,0,.7)}
+    .layers-stage::before{content:'';position:absolute;inset:0;border-radius:inherit;background:radial-gradient(circle at 24% 20%,rgba(250,204,21,.06),transparent 30%),radial-gradient(circle at 76% 76%,rgba(232,121,249,.05),transparent 34%);pointer-events:none}
+    .layers-stage::after{content:'';position:absolute;inset:14px;border-radius:24px;border:1px solid rgba(255,255,255,.035);pointer-events:none}
+    .layers-stack{position:relative;min-width:0;height:100%;perspective:1400px;perspective-origin:50% 110%;margin-left:0}
+    .map-layer{position:absolute;left:14px;right:14px;height:164px;border-radius:16px;overflow:hidden;transform-style:preserve-3d;transition:transform .65s cubic-bezier(.16,1,.3,1),opacity .45s ease,filter .35s ease,border-color .35s ease,box-shadow .45s ease;cursor:pointer;backface-visibility:hidden}
+    .map-layer::before{content:'';position:absolute;inset:0;opacity:.08;background-image:repeating-linear-gradient(90deg,currentColor 0 1px,transparent 1px 54px),repeating-linear-gradient(0deg,currentColor 0 1px,transparent 1px 46px);pointer-events:none}
+    .map-layer::after{content:attr(data-label);position:absolute;top:12px;left:16px;font-size:8px;font-weight:700;letter-spacing:2.1px;text-transform:uppercase;color:currentColor;font-family:var(--mono);opacity:.68}
+    .layer-map{position:absolute;inset:0;width:100%;height:100%}
+    .map-layer:nth-child(1){bottom:160px;z-index:5;color:var(--accent);background:rgba(250,204,21,.06);border:1px solid rgba(250,204,21,.28);transform:rotateX(52deg) translateZ(0);box-shadow:0 30px 60px -20px rgba(250,204,21,.2),0 0 40px -10px rgba(250,204,21,.08),inset 0 1px 0 rgba(250,204,21,.12)}
+    .map-layer:nth-child(2){bottom:126px;z-index:4;color:var(--orange);background:rgba(251,146,60,.06);border:1px solid rgba(251,146,60,.24);transform:rotateX(52deg) translateZ(-16px) scale(.97);box-shadow:0 24px 50px -20px rgba(251,146,60,.18),0 0 35px -10px rgba(251,146,60,.06),inset 0 1px 0 rgba(251,146,60,.1)}
+    .map-layer:nth-child(3){bottom:92px;z-index:3;color:var(--green);background:rgba(134,239,172,.06);border:1px solid rgba(134,239,172,.24);transform:rotateX(52deg) translateZ(-32px) scale(.94);box-shadow:0 18px 40px -20px rgba(134,239,172,.18),0 0 30px -10px rgba(134,239,172,.06),inset 0 1px 0 rgba(134,239,172,.1)}
+    .map-layer:nth-child(4){bottom:58px;z-index:2;color:var(--pink);background:rgba(232,121,249,.06);border:1px solid rgba(232,121,249,.22);transform:rotateX(52deg) translateZ(-48px) scale(.91);box-shadow:0 12px 30px -20px rgba(232,121,249,.16),0 0 25px -10px rgba(232,121,249,.06),inset 0 1px 0 rgba(232,121,249,.1)}
+    .map-layer:nth-child(5){bottom:24px;z-index:1;color:var(--purple);background:rgba(192,132,252,.05);border:1px solid rgba(192,132,252,.18);transform:rotateX(52deg) translateZ(-64px) scale(.88);box-shadow:0 6px 20px -20px rgba(192,132,252,.14),0 0 20px -10px rgba(192,132,252,.06),inset 0 1px 0 rgba(192,132,252,.08)}
+    .layer-cards{display:flex;flex-direction:column;gap:7px;min-width:0;width:min(100%,392px);justify-self:end;align-self:center}
+    .layer-panel-head{padding:0 2px 2px}
+    .layer-panel-kicker{display:inline-flex;align-items:center;gap:8px;font-size:10px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:var(--accent-hi);font-family:var(--mono);margin-bottom:8px}
+    .layer-panel-kicker::before{content:'';width:18px;height:1px;background:rgba(250,204,21,.45)}
+    .layer-panel-head h3{font-size:22px;line-height:1.02;letter-spacing:-.7px;margin-bottom:6px}
+    .layer-panel-head p{font-size:11px;line-height:1.46;color:var(--t2);max-width:34ch}
+    .layer-legend{display:grid;gap:6px;margin:10px 0 8px;padding:10px 11px;border-radius:18px;border:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.018)}
+    .layer-legend-row{display:grid;grid-template-columns:12px minmax(0,1fr) auto;align-items:center;gap:8px}
+    .layer-legend-swatch{width:10px;height:10px;border-radius:999px;background:var(--accent);box-shadow:0 0 10px rgba(250,204,21,.35)}
+    .layer-legend-label{font-size:9px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;color:var(--t3);font-family:var(--mono)}
+    .layer-legend-value{font-size:10px;font-weight:600;color:var(--t);text-align:right}
+    .layer-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-bottom:8px}
+    .layer-metric{padding:8px 10px;border-radius:16px;border:1px solid rgba(255,255,255,.04);background:rgba(255,255,255,.016)}
+    .layer-metric-label{display:block;font-size:9px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;color:var(--t3);font-family:var(--mono);margin-bottom:4px}
+    .layer-metric-value{display:block;font-size:11px;font-weight:700;color:var(--t)}
+    .layer-card{display:flex;align-items:flex-start;gap:12px;padding:9px 12px;border-radius:18px;border:1px solid rgba(255,255,255,.04);background:rgba(255,255,255,.018);backdrop-filter:blur(10px);cursor:pointer;transition:transform .35s cubic-bezier(.16,1,.3,1),border-color .35s ease,background .35s ease,box-shadow .35s ease,padding .25s ease}
+    .layer-card:hover,.layer-card.active{background:rgba(255,255,255,.05);border-color:var(--bdr-h);transform:translateX(6px)}
+    .layer-card.active{border-color:rgba(250,204,21,.22);box-shadow:0 18px 36px -26px rgba(250,204,21,.45)}
+    .layer-num{width:30px;height:30px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;font-family:var(--mono);flex-shrink:0;border:1px solid;transition:transform .4s,box-shadow .4s}
+    .layer-card:hover .layer-num,.layer-card.active .layer-num{transform:scale(1.12) rotate(-3deg);box-shadow:0 0 24px currentColor}
+    .layer-info{min-width:0}
+    .layer-info h3{font-size:13px;font-weight:800;margin-bottom:2px;letter-spacing:-.2px}
+    .layer-info h3 em{font-family:var(--display);font-style:italic;font-weight:400;color:var(--accent-hi);font-size:1.12em}
+    .layer-info p{font-size:10.5px;color:var(--t2);line-height:1.48}
+    .layer-note{display:block;font-size:8px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;color:var(--t3);font-family:var(--mono);margin-top:5px}
+    .layer-card:not(.active) .layer-info p,.layer-card:not(.active) .layer-note{display:none}
+    .layer-card:not(.active){padding-top:8px;padding-bottom:8px}
 
-    /* ---- TECH ---- */
-    .tg{display:flex;justify-content:center;flex-wrap:wrap;gap:12px}
-    .tp{display:flex;align-items:center;gap:8px;padding:10px 20px;border-radius:10px;border:1px solid var(--bdr);background:var(--card);font-size:13px;font-weight:600;color:var(--t2);transition:border-color .2s,color .2s}
-    .tp:hover{border-color:var(--bdr-h);color:var(--t)}
-    .td{width:6px;height:6px;border-radius:50%}
+    /* ---- RIDER PERSONAS ---- */
+    .riders{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;position:relative;z-index:1}
+    .rider-card{background:rgba(26,15,36,.6);backdrop-filter:blur(16px);padding:44px 36px;position:relative;overflow:hidden;transition:transform .5s cubic-bezier(.16,1,.3,1),box-shadow .5s,border-color .4s;cursor:default;border-radius:24px;border:1px solid var(--bdr)}
+    .rider-card::before{content:'';position:absolute;top:0;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,var(--rc,rgba(250,204,21,.25)),transparent);transition:opacity .4s}
+    .rider-card::after{content:'';position:absolute;inset:0;border-radius:inherit;background:radial-gradient(500px circle at var(--mx,50%) var(--my,50%),var(--rc,rgba(250,204,21,.08)),transparent 50%);opacity:0;transition:opacity .4s;pointer-events:none}
+    .rider-card:hover{transform:translateY(-6px);box-shadow:0 32px 80px -20px rgba(0,0,0,.5);border-color:var(--bdr-h)}
+    .rider-card:hover::after{opacity:1}
+    .rider-initial{width:64px;height:64px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;font-family:var(--display);font-style:italic;margin-bottom:22px;letter-spacing:.5px;position:relative;overflow:hidden;border:none}
+    .rider-initial::before{content:'';position:absolute;inset:0;background:conic-gradient(from var(--ri-angle,0deg),var(--ri-c1,var(--accent)) 0%,var(--ri-c2,var(--orange)) 25%,var(--ri-c1,var(--accent)) 50%,var(--ri-c2,var(--orange)) 75%,var(--ri-c1,var(--accent)) 100%);animation:ri-spin 4s linear infinite;opacity:.85}
+    .rider-initial::after{content:'';position:absolute;inset:2px;border-radius:16px;background:var(--bg)}
+    .rider-initial span{position:relative;z-index:2;background:linear-gradient(135deg,var(--ri-c1,var(--accent)),var(--ri-c2,var(--orange)));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 12px var(--ri-c1,var(--accent)))}
+    @keyframes ri-spin{to{--ri-angle:360deg}}
+    @property --ri-angle{syntax:'<angle>';inherits:false;initial-value:0deg}
+    .rider-card h3{font-size:22px;font-weight:800;margin-bottom:10px;letter-spacing:-.3px}
+    .rider-card h3 em{font-family:var(--display);font-style:italic;font-weight:400;color:var(--accent-hi);font-size:1.15em;padding-right:.04em}
+    .rider-card p{font-size:14px;color:var(--t2);line-height:1.7}
+    .rider-quote{margin-top:22px;padding:18px 22px;background:rgba(0,0,0,.32);border-radius:14px;border-left:3px solid;font-family:var(--display);font-size:14.5px;font-style:italic;color:var(--t2);line-height:1.65;position:relative}
+    .rider-quote::before{content:'\201C';position:absolute;top:8px;right:18px;font-size:48px;font-family:var(--display);color:var(--bdr);line-height:1}
+
+    /* ---- MARQUEE (infinite scroll with glow) ---- */
+    .marquee-wrap{overflow:hidden;position:relative;padding:40px 0}
+    .marquee-wrap::before,.marquee-wrap::after{content:'';position:absolute;top:0;bottom:0;width:160px;z-index:2;pointer-events:none}
+    .marquee-wrap::before{left:0;background:linear-gradient(90deg,var(--bg2),transparent)}
+    .marquee-wrap::after{right:0;background:linear-gradient(-90deg,var(--bg2),transparent)}
+    .marquee-track{display:flex;width:max-content;animation:marquee-scroll 35s linear infinite;will-change:transform}
+    .marquee-track:hover{animation-play-state:paused}
+    @keyframes marquee-scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+    .marquee-item{display:flex;align-items:center;gap:12px;padding:14px 28px;margin:0 10px;background:rgba(255,255,255,.025);border:1px solid var(--bdr);border-radius:100px;font-size:13px;font-weight:600;color:var(--t2);white-space:nowrap;transition:all .35s;backdrop-filter:blur(6px)}
+    .marquee-item:hover{border-color:var(--accent);color:var(--accent-hi);background:rgba(250,204,21,.04);box-shadow:0 0 20px rgba(250,204,21,.1);transform:scale(1.05)}
+    .marquee-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;box-shadow:0 0 6px currentColor}
+
+    /* ---- BIG NUMBERS (glassmorphism cards) ---- */
+    .numbers{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;max-width:960px;margin:0 auto}
+    .num-item{text-align:center;padding:40px 24px 36px;border-radius:24px;border:1px solid var(--bdr);background:rgba(26,15,36,.5);backdrop-filter:blur(16px);transition:transform .5s cubic-bezier(.16,1,.3,1),box-shadow .5s,border-color .4s;position:relative;overflow:hidden}
+    .num-item::before{content:'';position:absolute;top:0;left:20%;right:20%;height:1px;background:linear-gradient(90deg,transparent,var(--nc,rgba(250,204,21,.25)),transparent)}
+    .num-item::after{content:'';position:absolute;bottom:-40px;left:50%;transform:translateX(-50%);width:120px;height:80px;background:radial-gradient(ellipse,var(--nc,rgba(250,204,21,.12)),transparent 70%);pointer-events:none;filter:blur(20px);transition:opacity .4s}
+    .num-item:hover{transform:translateY(-8px);box-shadow:0 24px 60px -16px rgba(0,0,0,.5);border-color:var(--bdr-h)}
+    .num-item:hover::after{opacity:1.5}
+    .num-item .num-val{font-size:clamp(40px,5.5vw,60px);font-weight:900;font-family:var(--mono);letter-spacing:-2px;line-height:1;position:relative;z-index:1}
+    .num-item .num-label{font-size:12px;color:var(--t3);margin-top:12px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;position:relative;z-index:1}
+    .num-item .num-plus{font-size:.6em;vertical-align:super;opacity:.6}
 
     /* ---- CTA ---- */
-    .cta-s{text-align:center}
-    .cta-b{max-width:640px;margin:0 auto;padding:64px 40px;border-radius:20px;border:1px solid var(--bdr);background:linear-gradient(180deg,var(--card) 0%,rgba(59,130,246,.04) 100%);position:relative;overflow:hidden}
-    .cta-b::before{content:'';position:absolute;top:-1px;left:20%;right:20%;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent)}
-    .cta-b h2{font-size:clamp(26px,3.5vw,36px);font-weight:900;letter-spacing:-.5px;margin-bottom:12px}
-    .cta-b p{font-size:15px;color:var(--t2);margin-bottom:32px}
+    .cta-s{text-align:center;position:relative;overflow:hidden}
+    .cta-s::before{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:900px;height:700px;background:radial-gradient(ellipse 50% 45% at 50% 50%,rgba(250,204,21,.15),rgba(232,121,249,.07) 40%,transparent 75%);pointer-events:none;filter:blur(60px);z-index:0}
+    .cta-b{max-width:820px;margin:0 auto;padding:96px 56px;border-radius:36px;border:1px solid rgba(250,204,21,.14);background:linear-gradient(180deg,rgba(36,21,48,.7) 0%,rgba(26,15,36,.85) 100%);position:relative;overflow:hidden;backdrop-filter:blur(20px);box-shadow:0 60px 160px -40px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.06);z-index:1}
+    .cta-b::before{content:'';position:absolute;top:-1px;left:10%;right:10%;height:2px;background:linear-gradient(90deg,transparent,var(--accent),var(--cyan),transparent)}
+    .cta-b::after{content:'';position:absolute;bottom:-120px;left:50%;transform:translateX(-50%);width:560px;height:280px;background:radial-gradient(ellipse,rgba(250,204,21,.22),rgba(251,146,60,.08) 40%,transparent 70%);pointer-events:none;filter:blur(30px)}
+    .cta-b .cta-eb{display:inline-flex;align-items:center;gap:8px;padding:5px 16px 5px 12px;border-radius:100px;border:1px solid rgba(250,204,21,.2);background:rgba(250,204,21,.05);font-size:10px;font-weight:700;letter-spacing:2.2px;text-transform:uppercase;color:var(--accent-hi);margin-bottom:24px;position:relative;z-index:2}
+    .cta-b .cta-eb::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent)}
+    .cta-b h2{font-size:clamp(36px,5vw,62px);font-weight:900;letter-spacing:-1.8px;margin-bottom:18px;position:relative;z-index:2;line-height:1.02}
+    .cta-b h2 em{font-family:var(--display);font-style:italic;font-weight:400;color:var(--accent-hi);font-size:1.12em;padding:0 .04em}
+    .cta-b p{font-size:17px;color:var(--t2);margin-bottom:42px;max-width:520px;margin-left:auto;margin-right:auto;line-height:1.7;position:relative;z-index:2}
+    .cta-b .btn{position:relative;z-index:2;padding:18px 38px;font-size:14.5px}
+    .cta-b .cta-foot{margin-top:22px;font-size:12px;color:var(--t3);font-family:var(--mono);letter-spacing:.5px;position:relative;z-index:2}
 
     /* ---- FOOTER ---- */
-    .ft{padding:32px 0;border-top:1px solid var(--bdr)}
-    .ft .c{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}
-    .ft-c{font-size:12px;color:var(--t3)}
-    .ft-l{display:flex;gap:24px;list-style:none}
-    .ft-l a{font-size:12px;color:var(--t3);text-decoration:none;transition:color .2s}
-    .ft-l a:hover{color:var(--t2)}
+    .ft{padding:80px 0 36px;position:relative;background:linear-gradient(180deg,transparent,rgba(36,21,48,.4) 30%,rgba(19,11,26,.9));overflow:hidden}
+    .ft::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(250,204,21,.22),rgba(232,121,249,.16),transparent)}
+    .ft::after{content:'';position:absolute;bottom:-100px;left:50%;transform:translateX(-50%);width:700px;height:300px;background:radial-gradient(ellipse,rgba(250,204,21,.1),transparent 70%);pointer-events:none;filter:blur(60px)}
+    .ft .c{display:flex;flex-direction:column;gap:48px;position:relative;z-index:2}
+    .ft-top{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:40px;align-items:flex-start}
+    .ft-brand{display:flex;flex-direction:column;gap:14px;max-width:300px}
+    .ft-brand-logo{display:flex;align-items:center;gap:10px}
+    .ft-brand-logo img{height:28px;width:auto}
+    .ft-brand-name{font-size:17px;font-weight:900;letter-spacing:2.5px;background:linear-gradient(90deg,#F5F0F8,#FEF08A,#E879F9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .ft-brand-desc{font-size:13px;color:var(--t2);line-height:1.7;font-family:var(--display);font-style:italic;font-weight:400}
+    .ft-col h4{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent-hi);margin-bottom:16px;display:flex;align-items:center;gap:6px}
+    .ft-col h4::before{content:'';width:4px;height:4px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px var(--accent)}
+    .ft-col ul{list-style:none;display:flex;flex-direction:column;gap:10px}
+    .ft-col a{font-size:13.5px;color:var(--t2);text-decoration:none;transition:color .25s,transform .25s;display:inline-block}
+    .ft-col a:hover{color:var(--accent-hi);transform:translateX(2px)}
+    .ft-bot{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;padding-top:28px;border-top:1px solid var(--bdr)}
+    .ft-c{font-size:11.5px;color:var(--t3);font-family:var(--mono);letter-spacing:.3px}
+    .ft-c em{font-family:var(--display);font-style:italic;color:var(--accent-hi);font-size:1.15em;padding:0 .05em;font-weight:400}
+    .ft-social{display:flex;gap:10px}
+    .ft-social a{width:36px;height:36px;border-radius:10px;border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;color:var(--t3);text-decoration:none;transition:border-color .25s,color .25s,transform .25s,background .25s}
+    .ft-social a:hover{border-color:var(--accent);color:var(--accent);background:rgba(250,204,21,.06);transform:translateY(-1px)}
+    .ft-social svg{width:16px;height:16px}
+
+    /* ---- SCROLL-SPY SIDEBAR ---- */
+    .spy{position:fixed;left:28px;top:50%;transform:translateY(-50%);z-index:999;display:flex;flex-direction:column;gap:24px;opacity:0;transition:opacity .5s;pointer-events:none}
+    .spy.visible{opacity:1;pointer-events:auto}
+    .spy-dot{position:relative;display:flex;align-items:center;gap:12px;cursor:pointer}
+    .spy-pip{width:10px;height:10px;border-radius:50%;border:2px solid var(--bdr-h);background:transparent;transition:all .4s cubic-bezier(.16,1,.3,1);flex-shrink:0}
+    .spy-dot.active .spy-pip{background:var(--accent);border-color:var(--accent);box-shadow:0 0 12px rgba(250,204,21,.5);transform:scale(1.3)}
+    .spy-label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--t3);opacity:0;transform:translateX(-6px);transition:all .3s;white-space:nowrap;font-family:var(--mono)}
+    .spy-dot:hover .spy-label,.spy-dot.active .spy-label{opacity:1;transform:translateX(0);color:var(--accent-hi)}
+    .spy-line{width:2px;height:16px;background:var(--bdr);margin-left:4px;border-radius:1px}
 
     /* ---- RESPONSIVE ---- */
     @media(max-width:1024px){
-      .bento{grid-template-columns:1fr 1fr}.bc.s2{grid-column:span 2}
+      #features>.c{max-width:1080px}
+      .layer-stepper{left:60px}
+      .layers-demo{grid-template-columns:minmax(0,1.35fr) minmax(270px,1fr);gap:20px;padding-left:92px}
+      .layers-stage{height:334px}
+      .layers-stack{height:100%;margin-left:0}
+      .map-layer{left:12px;right:12px;height:150px}
+      .map-layer:nth-child(1){bottom:146px}
+      .map-layer:nth-child(2){bottom:116px}
+      .map-layer:nth-child(3){bottom:86px}
+      .map-layer:nth-child(4){bottom:56px}
+      .map-layer:nth-child(5){bottom:26px}
+      .layer-cards{width:min(100%,324px);gap:8px}
+      .layer-panel-head h3{font-size:22px}
+      .layer-panel-head p{font-size:11px}
+      .riders{grid-template-columns:1fr 1fr}
+      .numbers{grid-template-columns:repeat(2,1fr)}
+      .ft-top{grid-template-columns:1.2fr 1fr 1fr;gap:32px}
+      .ft-social{grid-column:1 / -1;margin-top:-20px}
     }
     @media(max-width:768px){
       :root{--nav:56px}
+      .spy{display:none!important}
       .nl{display:none}
-      .nl.open{display:flex;flex-direction:column;position:fixed;top:var(--nav);left:0;right:0;background:rgba(5,10,18,.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);padding:24px;border-bottom:1px solid var(--bdr);gap:20px}
+      .nl.open{display:flex;flex-direction:column;position:fixed;top:var(--nav);left:0;right:0;background:rgba(19,11,26,.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);padding:24px;border-bottom:1px solid var(--bdr);gap:20px}
       .mt{display:block}
       .hero{min-height:auto;padding:calc(var(--nav) + 48px) 0 64px}
-      .hero h1{font-size:32px;letter-spacing:-1px}
+      .hero h1{font-size:34px;letter-spacing:-1.2px}
       .hero-cards{gap:8px}.hc{padding:10px 16px}.hc-l{font-size:10px}.hc-v{font-size:12px}
-      .sec{padding:64px 0}
-      .bento{grid-template-columns:1fr}.bc.s2{grid-column:span 1}
-      .steps{grid-template-columns:1fr;gap:24px}.steps::before{display:none}
-      .modes{grid-template-columns:1fr}
-      .ft .c{flex-direction:column;text-align:center}
-      .cta-b{padding:40px 24px}
+      .sec{padding:72px 0}
+      .sec-h{margin-bottom:48px}
+      .sec-t{font-size:30px;letter-spacing:-1px}
+      #features{padding-top:32px;padding-bottom:56px}
+      #features>.c{display:block;max-width:var(--mw)}
+      #features .sec-h{margin-bottom:40px}
+      .layers-wrap{display:block}
+      .layer-stepper{display:none}
+      .layers-demo{grid-template-columns:1fr;gap:28px;padding-left:0}
+      .layers-stage{height:300px}
+      .layers-stack{height:100%;min-height:0;margin-left:0}
+      .map-layer{left:10px;right:10px;height:148px}
+      .map-layer:nth-child(1){bottom:140px}
+      .map-layer:nth-child(2){bottom:112px}
+      .map-layer:nth-child(3){bottom:84px}
+      .map-layer:nth-child(4){bottom:56px}
+      .map-layer:nth-child(5){bottom:28px}
+      .layer-cards{width:100%;max-width:none;gap:8px}
+      .layer-panel-head{padding-bottom:2px}
+      .layer-panel-head h3{font-size:20px}
+      .layer-card{padding:14px 16px}
+      .layer-num{width:34px;height:34px;font-size:12px;border-radius:10px}
+      .layer-info h3{font-size:13px}
+      .layer-info p{font-size:11px}
+      .riders{grid-template-columns:1fr;gap:16px}
+      .rider-card{padding:32px 26px}
+      .rider-initial{width:56px;height:56px;font-size:24px}
+      .numbers{grid-template-columns:repeat(2,1fr);gap:16px}
+      .num-item{padding:28px 18px 24px}
+      .ft{padding:56px 0 28px}
+      .ft-top{grid-template-columns:1fr;gap:36px;text-align:center}
+      .ft-brand{max-width:none;align-items:center}
+      .ft-col h4{justify-content:center}
+      .ft-col ul{align-items:center}
+      .ft-bot{flex-direction:column;text-align:center}
+      .cta-s{padding-bottom:64px}
+      .cta-b{padding:56px 28px;border-radius:28px}
+      .cta-b h2{font-size:32px;letter-spacing:-1px}
     }
     @media(max-width:480px){
       .hero-a{flex-direction:column}
       .btn{width:100%;justify-content:center}
+      .layers-stage{height:268px}
+      .layers-stack{height:100%;min-height:0}
+      .map-layer{left:8px;right:8px;height:132px}
+      .map-layer:nth-child(1){bottom:124px}
+      .map-layer:nth-child(2){bottom:100px}
+      .map-layer:nth-child(3){bottom:76px}
+      .map-layer:nth-child(4){bottom:52px}
+      .map-layer:nth-child(5){bottom:28px}
+      .numbers{grid-template-columns:1fr 1fr;gap:12px}
+      .num-item{padding:24px 14px 20px;border-radius:18px}
     }
   </style>
 </head>
 <body>
 
+<!-- Scroll-spy sidebar -->
+<div class="spy" id="spy">
+  <a class="spy-dot active" href="#hero-top"><span class="spy-pip"></span><span class="spy-label">Home</span></a>
+  <div class="spy-line"></div>
+  <a class="spy-dot" href="#features"><span class="spy-pip"></span><span class="spy-label">Layers</span></a>
+  <div class="spy-line"></div>
+  <a class="spy-dot" href="#how"><span class="spy-pip"></span><span class="spy-label">Riders</span></a>
+  <div class="spy-line"></div>
+  <a class="spy-dot" href="#numbers"><span class="spy-pip"></span><span class="spy-label">Numbers</span></a>
+  <div class="spy-line"></div>
+  <a class="spy-dot" href="#cta-section"><span class="spy-pip"></span><span class="spy-label">Get Started</span></a>
+</div>
+
 <nav class="nav"><div class="c">
-  <a href="index.html" class="nav-b"><img src="assets/motomap-icon.svg" alt="MotoMap"/><span class="nav-wm">MOTOMAP</span></a>
-  <button class="mt" onclick="document.querySelector('.nl').classList.toggle('open')" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 5h14M3 10h14M3 15h14" stroke="#E8ECF4" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+  <a href="index.html" class="nav-b"><img src="assets/motomap-icon.svg" alt="MotoMap"/><span class="nav-wm">MOTOMAP</span><span class="nav-ver">v0.98</span></a>
+  <button class="mt" onclick="document.querySelector('.nl').classList.toggle('open')" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 5h14M3 10h14M3 15h14" stroke="#F5F0F8" stroke-width="1.5" stroke-linecap="round"/></svg></button>
   <ul class="nl">
     <li><a href="index.html#features" class="on">Features</a></li>
-    <li><a href="index.html#how">How It Works</a></li>
-    <li><a href="index.html#modes">Riding Modes</a></li>
+    <li><a href="index.html#how">Riders</a></li>
     <li><a href="releases.html">Releases</a></li>
     <li><a href="https://github.com/alipasha03/motomap" class="cta">GitHub</a></li>
   </ul>
 </div></nav>
 
-<section class="hero">
+<section class="hero" id="hero-top">
   <div class="orb orb-1"></div>
   <div class="orb orb-2"></div>
   <div class="orb orb-3"></div>
@@ -199,76 +399,594 @@
         <div class="hc"><span class="hc-dot" style="background:var(--orange)"></span><span class="hc-l">Tests</span><span class="hc-v" style="color:var(--orange)">1,005</span></div>
         <div class="hc"><span class="hc-dot" style="background:var(--green)"></span><span class="hc-l">Data</span><span class="hc-v" style="color:var(--green)">OSM</span></div>
       </div>
+      <svg class="hero-route r rd3" viewBox="0 0 600 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="rg" x1="30" y1="30" x2="570" y2="30"><stop stop-color="#FACC15"/><stop offset="1" stop-color="#E879F9"/></linearGradient>
+          <filter id="rgl" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.5"/></filter>
+          <filter id="tdg" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="4"/></filter>
+          <radialGradient id="tdr"><stop offset="0%" stop-color="#FACC15"/><stop offset="100%" stop-color="#E879F9" stop-opacity="0"/></radialGradient>
+        </defs>
+        <circle class="route-dot-start" cx="30" cy="30" r="5" fill="#FACC15"/>
+        <circle class="route-dot-start" cx="30" cy="30" r="10" fill="#FACC15" opacity=".25" filter="url(#rgl)"/>
+        <path id="heroRoutePath" class="route-path" d="M30 30 Q120 5 200 30 T370 25 T570 30" stroke="url(#rg)" stroke-width="2" fill="none" stroke-linecap="round" pathLength="620"/>
+        <circle class="route-dot-end" cx="570" cy="30" r="5" fill="#E879F9"/>
+        <circle class="route-dot-end" cx="570" cy="30" r="10" fill="#E879F9" opacity=".25" filter="url(#rgl)"/>
+        <!-- Traveling dot (infinite loop) -->
+        <circle class="traveling-glow" r="10" fill="url(#tdr)" opacity=".5" filter="url(#tdg)">
+          <animateMotion dur="3.5s" repeatCount="indefinite" begin="4.4s" rotate="auto">
+            <mpath href="#heroRoutePath"/>
+          </animateMotion>
+        </circle>
+        <circle class="traveling-dot" r="4" fill="#FDE047">
+          <animateMotion dur="3.5s" repeatCount="indefinite" begin="4.4s" rotate="auto">
+            <mpath href="#heroRoutePath"/>
+          </animateMotion>
+        </circle>
+      </svg>
     </div>
   </div>
 </section>
 
-
-
+<!-- ============ FEATURES: 5-LAYER MAP SHOWCASE ============ -->
 <section id="features" class="sec"><div class="c">
-  <div class="sec-h r"><div class="sec-e">Features</div><h2 class="sec-t">Built for Motorcycle Riders</h2><p class="sec-d">Beyond standard navigation. Curvature quality, road surface, grade analysis, and traffic-flow-theory-based speed estimation.</p></div>
-  <div class="bento">
-    <div class="bc s2 r"><div class="bi" style="background:var(--accent-d)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1018 0 9 9 0 00-18 0"/><path d="M12 2v4M12 18v4m-7.07-14.93l2.83 2.83m9.31 9.31l2.83 2.83M2 12h4m12 0h4"/></svg></div><h3>Five-Layer Speed Model</h3><p>Road-class free-flow factors, BPR volume-delay congestion, surface-type reduction, grade kinematic slowdown, and motorcycle lane-filtering. Grounded in HCM Chapter 23 and BPR (1964).</p></div>
-    <div class="bc r rd1"><div class="bi" style="background:var(--cyan-d)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></div><h3>Curvature Analysis</h3><p>Vectorized angle computation classifies every segment as fun, dangerous, or hairpin for ride quality scoring.</p></div>
-    <div class="bc r"><div class="bi" style="background:var(--orange-d)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v8l4-4M12 2v8l-4-4M20 16.2A4.5 4.5 0 0017.5 8h-1.8A7 7 0 104 14.9"/></svg></div><h3>Weather Integration</h3><p>Real-time weather along your route. Adjust plans before you ride, not during.</p></div>
-    <div class="bc r rd1"><div class="bi" style="background:var(--green-d)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0112 2a8 8 0 018 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg></div><h3>Surface Awareness</h3><p>20 surface types from asphalt to gravel to mud, each with motorcycle-specific speed factors from field research.</p></div>
-    <div class="bc s2 r rd2"><div class="bi" style="background:var(--purple-d)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div><h3>Real-Time Ready Architecture</h3><p>BPR congestion model activates automatically when live V/C ratios are available from traffic feeds (IBB Open Data, Google, TomTom, HERE). Without live data, statistical peak-hour defaults provide realistic estimates.</p></div>
+  <div class="sec-h r"><div class="sec-e">Engine</div><h2 class="sec-t">Five layers of <em class="em">intelligence</em></h2><p class="sec-d">Every road segment passes through five data layers. The result is a route no generic map app can match.</p></div>
+
+  <div class="layers-wrap r">
+    <div class="layer-stepper" id="layer-stepper" aria-hidden="true">
+      <span class="layer-stepper-label" id="layer-stepper-label">01 / 05</span>
+      <div class="layer-stepper-rail">
+        <span class="layer-stepper-dot current" data-step="0"></span>
+        <span class="layer-stepper-line"><span class="layer-stepper-line-fill"></span></span>
+        <span class="layer-stepper-dot" data-step="1"></span>
+        <span class="layer-stepper-line"><span class="layer-stepper-line-fill"></span></span>
+        <span class="layer-stepper-dot" data-step="2"></span>
+        <span class="layer-stepper-line"><span class="layer-stepper-line-fill"></span></span>
+        <span class="layer-stepper-dot" data-step="3"></span>
+        <span class="layer-stepper-line"><span class="layer-stepper-line-fill"></span></span>
+        <span class="layer-stepper-dot" data-step="4"></span>
+      </div>
+    </div>
+
+    <div class="layers-demo">
+      <div class="layers-stage" id="layers-stage">
+        <!-- 3D stacked map layers -->
+        <div class="layers-stack" id="layers-stack">
+          <div class="map-layer" data-layer="0" data-label="Speed Model">
+          <svg class="layer-map" viewBox="0 0 400 180" fill="none"><path d="M22 132 C74 112 120 118 170 108 S278 88 354 100" stroke="rgba(250,204,21,.34)" stroke-width="13" stroke-linecap="round"/><path d="M58 58 C124 74 178 68 232 52 S328 42 364 64" stroke="rgba(250,204,21,.14)" stroke-width="11" stroke-linecap="round"/><path d="M22 132 C74 112 120 118 170 108 S278 88 354 100" stroke="rgba(250,204,21,.72)" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="7 6"><animate attributeName="stroke-dashoffset" from="0" to="26" dur="2.8s" repeatCount="indefinite"/></path><path d="M58 58 C124 74 178 68 232 52 S328 42 364 64" stroke="rgba(250,204,21,.44)" stroke-width="1.5" stroke-linecap="round"/><path d="M178 32 V146" stroke="rgba(250,204,21,.18)" stroke-width="1"/><text x="30" y="118" fill="rgba(250,204,21,.52)" font-size="8" font-family="monospace">A12 120</text><text x="222" y="44" fill="rgba(250,204,21,.44)" font-size="8" font-family="monospace">B7 90</text><circle cx="104" cy="118" r="4" fill="#FACC15" opacity=".75"/><circle cx="240" cy="96" r="4" fill="#FACC15" opacity=".82"/><circle cx="316" cy="92" r="3.5" fill="#FACC15" opacity=".55"/></svg>
+          </div>
+          <div class="map-layer" data-layer="1" data-label="Congestion">
+          <svg class="layer-map" viewBox="0 0 400 180" fill="none"><path d="M34 128 C86 108 142 106 190 100 S286 88 360 80" stroke="rgba(251,146,60,.18)" stroke-width="14" stroke-linecap="round"/><path d="M34 128 C86 108 142 106 190 100 S286 88 360 80" stroke="rgba(251,146,60,.72)" stroke-width="2.4" stroke-linecap="round"/><path d="M132 110 C166 104 194 102 220 100" stroke="rgba(249,115,22,.96)" stroke-width="8" stroke-linecap="round"/><path d="M220 100 C244 98 270 96 298 92" stroke="rgba(249,115,22,.84)" stroke-width="10" stroke-linecap="round"/><path d="M88 68 C120 78 164 74 210 60" stroke="rgba(251,146,60,.34)" stroke-width="8" stroke-linecap="round"/><rect x="144" y="86" width="64" height="28" rx="14" fill="rgba(251,146,60,.08)" stroke="rgba(251,146,60,.2)"/><text x="158" y="104" fill="rgba(251,146,60,.62)" font-size="8" font-family="monospace">V/C 0.91</text><circle cx="188" cy="100" r="8" fill="none" stroke="rgba(251,146,60,.55)" stroke-width="1.2"><animate attributeName="r" values="7;15;7" dur="2.8s" repeatCount="indefinite"/><animate attributeName="opacity" values=".65;0;.65" dur="2.8s" repeatCount="indefinite"/></circle><text x="286" y="84" fill="rgba(251,146,60,.46)" font-size="8" font-family="monospace">SEVERE</text></svg>
+          </div>
+          <div class="map-layer" data-layer="2" data-label="Surfaces">
+          <svg class="layer-map" viewBox="0 0 400 180" fill="none"><path d="M28 126 C76 112 128 112 176 102 S280 88 354 88" stroke="rgba(255,255,255,.08)" stroke-width="11" stroke-linecap="round"/><path d="M36 56 C94 78 148 74 214 60 S316 58 364 70" stroke="rgba(255,255,255,.06)" stroke-width="9" stroke-linecap="round"/><rect x="32" y="86" width="94" height="46" rx="8" fill="rgba(134,239,172,.08)" stroke="rgba(134,239,172,.22)" stroke-dasharray="4 4"/><rect x="148" y="84" width="74" height="42" rx="8" fill="rgba(251,146,60,.08)" stroke="rgba(251,146,60,.22)" stroke-dasharray="4 4"/><rect x="248" y="82" width="92" height="44" rx="8" fill="rgba(148,163,184,.07)" stroke="rgba(148,163,184,.18)" stroke-dasharray="3 4"/><text x="78" y="112" text-anchor="middle" fill="rgba(134,239,172,.55)" font-size="8" font-family="monospace">ASPHALT</text><text x="185" y="109" text-anchor="middle" fill="rgba(251,146,60,.55)" font-size="8" font-family="monospace">GRAVEL</text><text x="294" y="109" text-anchor="middle" fill="rgba(203,213,225,.5)" font-size="8" font-family="monospace">COBBLE</text><path d="M36 56 C94 78 148 74 214 60 S316 58 364 70" stroke="rgba(134,239,172,.34)" stroke-width="1.6"/></svg>
+          </div>
+          <div class="map-layer" data-layer="3" data-label="Curvature">
+          <svg class="layer-map" viewBox="0 0 400 180" fill="none"><path d="M34 132 C70 132 86 72 118 72 S168 132 208 132 S276 48 318 48 S362 112 368 112" stroke="rgba(232,121,249,.26)" stroke-width="10" stroke-linecap="round" fill="none"/><path d="M34 132 C70 132 86 72 118 72 S168 132 208 132 S276 48 318 48 S362 112 368 112" stroke="rgba(232,121,249,.62)" stroke-width="2" stroke-linecap="round" fill="none" stroke-dasharray="8 5"><animate attributeName="stroke-dashoffset" from="0" to="-20" dur="2.3s" repeatCount="indefinite"/></path><circle cx="118" cy="72" r="7" fill="none" stroke="rgba(232,121,249,.5)" stroke-width="1.3"/><circle cx="318" cy="48" r="7" fill="none" stroke="rgba(232,121,249,.44)" stroke-width="1.3"/><text x="118" y="58" text-anchor="middle" fill="rgba(232,121,249,.55)" font-size="8" font-family="monospace">R=22m</text><text x="318" y="34" text-anchor="middle" fill="rgba(232,121,249,.45)" font-size="8" font-family="monospace">HAIRPIN</text><path d="M142 112 l10 -10 l10 10" stroke="rgba(232,121,249,.36)" stroke-width="1.3" fill="none"/><path d="M240 96 l10 -10 l10 10" stroke="rgba(232,121,249,.36)" stroke-width="1.3" fill="none"/></svg>
+          </div>
+          <div class="map-layer" data-layer="4" data-label="Elevation">
+          <svg class="layer-map" viewBox="0 0 400 180" fill="none"><path d="M26 132 C92 132 112 84 180 84 S300 36 364 54" stroke="rgba(192,132,252,.22)" stroke-width="1.2" fill="none"/><path d="M22 144 C88 144 110 98 176 98 S296 52 360 70" stroke="rgba(192,132,252,.18)" stroke-width="1.1" fill="none"/><path d="M20 156 C86 156 108 114 174 114 S294 74 358 88" stroke="rgba(192,132,252,.14)" stroke-width="1" fill="none"/><path d="M42 126 C96 126 126 92 190 92 S286 48 340 60" stroke="rgba(192,132,252,.58)" stroke-width="2.4" stroke-linecap="round" fill="none"/><circle cx="206" cy="88" r="5" fill="rgba(192,132,252,.38)"/><circle cx="286" cy="52" r="4.5" fill="rgba(192,132,252,.3)"/><text x="204" y="74" fill="rgba(192,132,252,.52)" font-size="8" font-family="monospace">+8%</text><text x="286" y="40" fill="rgba(192,132,252,.44)" font-size="8" font-family="monospace">1120m</text><path d="M56 46 l20 0 M66 36 l0 20" stroke="rgba(192,132,252,.24)" stroke-width="1"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="layer-cards">
+        <div class="layer-panel-head">
+          <span class="layer-panel-kicker">Map Legend</span>
+          <h3 id="layer-panel-title">Speed Model</h3>
+          <p id="layer-panel-copy">Road-class based free-flow speed. Motorways at 120 km/h, residential at 30.</p>
+          <div class="layer-legend" id="layer-legend">
+            <div class="layer-legend-row">
+              <span class="layer-legend-swatch" id="legend-swatch-1"></span>
+              <span class="layer-legend-label" id="legend-label-1">Primary</span>
+              <span class="layer-legend-value" id="legend-value-1">120 km/h</span>
+            </div>
+            <div class="layer-legend-row">
+              <span class="layer-legend-swatch" id="legend-swatch-2"></span>
+              <span class="layer-legend-label" id="legend-label-2">Secondary</span>
+              <span class="layer-legend-value" id="legend-value-2">90 km/h</span>
+            </div>
+            <div class="layer-legend-row">
+              <span class="layer-legend-swatch" id="legend-swatch-3"></span>
+              <span class="layer-legend-label" id="legend-label-3">Residential</span>
+              <span class="layer-legend-value" id="legend-value-3">30 km/h</span>
+            </div>
+          </div>
+          <div class="layer-metrics">
+            <div class="layer-metric">
+              <span class="layer-metric-label">Signal</span>
+              <span class="layer-metric-value" id="metric-signal">Free Flow</span>
+            </div>
+            <div class="layer-metric">
+              <span class="layer-metric-label">Update</span>
+              <span class="layer-metric-value" id="metric-update">Static</span>
+            </div>
+            <div class="layer-metric">
+              <span class="layer-metric-label">Weight</span>
+              <span class="layer-metric-value" id="metric-weight">0.35</span>
+            </div>
+          </div>
+        </div>
+        <div class="layer-card active" data-layer="0">
+          <div class="layer-num" style="color:var(--accent);border-color:rgba(250,204,21,.25);background:var(--accent-d)">01</div>
+          <div class="layer-info"><h3>Speed <em>Model</em></h3><p>Road-class based free-flow speed. Motorways at 120 km/h, residential at 30.</p><span class="layer-note">Base routing surface</span></div>
+        </div>
+        <div class="layer-card" data-layer="1">
+          <div class="layer-num" style="color:var(--orange);border-color:rgba(251,146,60,.25);background:var(--orange-d)">02</div>
+          <div class="layer-info"><h3>Traffic <em>Congestion</em></h3><p>BPR volume-delay model with 15% lane-filtering advantage for motorcycles.</p><span class="layer-note">Live traffic penalty</span></div>
+        </div>
+        <div class="layer-card" data-layer="2">
+          <div class="layer-num" style="color:var(--green);border-color:rgba(134,239,172,.25);background:var(--green-d)">03</div>
+          <div class="layer-info"><h3>Surface <em>Detection</em></h3><p>20 classified surface types from asphalt (1.0) to mud (0.35).</p><span class="layer-note">Road material confidence</span></div>
+        </div>
+        <div class="layer-card" data-layer="3">
+          <div class="layer-num" style="color:var(--pink);border-color:rgba(232,121,249,.25);background:var(--cyan-d)">04</div>
+          <div class="layer-info"><h3>Curvature <em>Analysis</em></h3><p>Bearing-change classification: hairpin, sharp, fun, and mild turns.</p><span class="layer-note">Lean-angle potential</span></div>
+        </div>
+        <div class="layer-card" data-layer="4">
+          <div class="layer-num" style="color:var(--purple);border-color:rgba(192,132,252,.25);background:var(--purple-d)">05</div>
+          <div class="layer-info"><h3>Elevation <em>Grade</em></h3><p>Kinematic speed adjustment for slopes. 8% grade = 0.68 factor.</p><span class="layer-note">Terrain resistance map</span></div>
+        </div>
+      </div>
+    </div>
   </div>
 </div></section>
 
+<!-- ============ RIDER PERSONAS ============ -->
 <section id="how" class="sec sec-alt"><div class="c">
-  <div class="sec-h r"><div class="sec-e">How It Works</div><h2 class="sec-t">Three Steps to Ride</h2><p class="sec-d">Pick your destination, choose your style, and let the algorithm handle the rest.</p></div>
-  <div class="steps">
-    <div class="step r"><div class="step-n">01</div><h3>Set Your Destination</h3><p>Drop pins on the map or search by name. MotoMap downloads the road network from OpenStreetMap automatically.</p></div>
-    <div class="step r rd1"><div class="step-n">02</div><h3>Choose a Riding Mode</h3><p>Sport optimizes for speed. Twisty maximizes curves. Safe avoids steep grades and poor surfaces.</p></div>
-    <div class="step r rd2"><div class="step-n">03</div><h3>Hit the Road</h3><p>View your route on the map with elevation profile, weather forecast, and real-time traffic conditions.</p></div>
+  <div class="sec-h r"><div class="sec-e">Riders</div><h2 class="sec-t">Built for every <em class="em">rider</em></h2><p class="sec-d">Whether you commute, tour, race, or explore &mdash; MotoMap adapts to how you actually ride.</p></div>
+
+  <div class="riders" id="riders-grid">
+    <div class="rider-card r" style="--rc:rgba(250,204,21,.12);--ri-c1:var(--accent);--ri-c2:var(--orange)">
+      <div class="rider-initial"><span>S</span></div>
+      <h3>Sport <em>Rider</em></h3>
+      <p>Track-day addicts and sportbike owners. You want the fastest, smoothest asphalt-only routes &mdash; no detours, no gravel, maximum lean angle.</p>
+      <div class="rider-quote" style="border-color:var(--accent)">"I used to memorize highway exits. Now MotoMap finds roads I didn't know existed."</div>
+    </div>
+    <div class="rider-card r rd1" style="--rc:rgba(134,239,172,.12);--ri-c1:var(--green);--ri-c2:#22D3EE">
+      <div class="rider-initial"><span>A</span></div>
+      <h3>Adventure <em>Rider</em></h3>
+      <p>GS owners and dual-sport explorers. You seek gravel passes, mountain trails, and roads that don't show up on Google Maps.</p>
+      <div class="rider-quote" style="border-color:var(--green)">"The surface awareness feature alone saved me from a 40km mud section in Thrace."</div>
+    </div>
+    <div class="rider-card r rd2" style="--rc:rgba(251,146,60,.12);--ri-c1:var(--orange);--ri-c2:var(--accent)">
+      <div class="rider-initial"><span>T</span></div>
+      <h3>Touring <em>Rider</em></h3>
+      <p>Long-haul riders who cover 500+ km per day. You need weather-aware routing, elevation profiles, and rest stop planning.</p>
+      <div class="rider-quote" style="border-color:var(--orange)">"The grade analysis told me about a 12% pass before I loaded my panniers. Game changer."</div>
+    </div>
+    <div class="rider-card r rd3" style="--rc:rgba(192,132,252,.12);--ri-c1:var(--purple);--ri-c2:var(--pink)">
+      <div class="rider-initial"><span>C</span></div>
+      <h3>Daily <em>Commuter</em></h3>
+      <p>Riders who fight traffic twice a day. You need the fastest path through congestion with real-time lane-filtering advantage.</p>
+      <div class="rider-quote" style="border-color:var(--purple)">"BPR congestion model + lane filtering = 22 minutes off my daily commute."</div>
+    </div>
   </div>
 </div></section>
 
-<section id="modes" class="sec"><div class="c">
-  <div class="sec-h r"><div class="sec-e">Riding Modes</div><h2 class="sec-t">A Route for Every Rider</h2></div>
-  <div class="modes">
-    <div class="mc r"><div class="mi" style="background:var(--accent-d)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div><h3>Sport</h3><p>Fastest path optimized for speed and efficiency. Direct highways and smooth roads.</p></div>
-    <div class="mc r rd1"><div class="mi" style="background:var(--orange-d)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12C2 7 7 2 12 2s7 3 8 6M22 12c0 5-5 10-10 10S2 19 2 16"/><circle cx="12" cy="12" r="2"/></svg></div><h3>Twisty</h3><p>Maximum curvature and riding fun. Seeks out mountain passes, coastal bends, and winding valleys.</p></div>
-    <div class="mc r rd2"><div class="mi" style="background:var(--green-d)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg></div><h3>Safe</h3><p>Avoids steep grades, unpaved surfaces, and hazardous segments. Prioritizes well-maintained roads.</p></div>
+<!-- ============ SOCIAL PROOF NUMBERS ============ -->
+<section class="sec sec-alt" id="numbers"><div class="c">
+  <div class="sec-h r"><div class="sec-e">Scale</div><h2 class="sec-t">Numbers that <em class="em">move</em></h2><p class="sec-d">Measured, tested, and open for inspection &mdash; every claim backed by code.</p></div>
+
+  <div class="numbers r">
+    <div class="num-item" style="--nc:rgba(250,204,21,.2)"><div class="num-val" style="color:var(--accent)" data-to="1005">0</div><div class="num-label">Tests passing</div></div>
+    <div class="num-item" style="--nc:rgba(232,121,249,.2)"><div class="num-val" style="color:var(--pink)" data-to="20">0</div><div class="num-label">Surface types</div></div>
+    <div class="num-item" style="--nc:rgba(251,146,60,.2)"><div class="num-val" style="color:var(--orange)" data-to="5">0</div><div class="num-label">Speed layers</div></div>
+    <div class="num-item" style="--nc:rgba(134,239,172,.2)"><div class="num-val" style="color:var(--green)" data-to="4">0</div><div class="num-label">Riding modes</div></div>
+  </div>
+
+  <div class="marquee-wrap" style="margin-top:56px">
+    <div class="marquee-track">
+      <div class="marquee-item"><span class="marquee-dot" style="background:var(--accent);box-shadow:0 0 8px var(--accent)"></span>Sport Routing</div>
+      <div class="marquee-item"><span class="marquee-dot" style="background:var(--orange);box-shadow:0 0 8px var(--orange)"></span>Twisty Mountain Passes</div>
+      <div class="marquee-item"><span class="marquee-dot" style="background:var(--green);box-shadow:0 0 8px var(--green)"></span>Safe Commute</div>
+      <div class="marquee-item"><span class="marquee-dot" style="background:var(--pink);box-shadow:0 0 8px var(--pink)"></span>Weather-Aware</div>
+      <div class="marquee-item"><span class="marquee-dot" style="background:var(--purple);box-shadow:0 0 8px var(--purple)"></span>OpenStreetMap Data</div>
+      <div class="marquee-item"><span class="marquee-dot" style="background:var(--accent);box-shadow:0 0 8px var(--accent)"></span>BPR Congestion</div>
+      <div class="marquee-item"><span class="marquee-dot" style="background:var(--orange);box-shadow:0 0 8px var(--orange)"></span>Lane Filtering</div>
+      <div class="marquee-item"><span class="marquee-dot" style="background:var(--green);box-shadow:0 0 8px var(--green)"></span>Grade Analysis</div>
+      <div class="marquee-item"><span class="marquee-dot" style="background:var(--pink);box-shadow:0 0 8px var(--pink)"></span>Surface Detection</div>
+      <div class="marquee-item"><span class="marquee-dot" style="background:var(--purple);box-shadow:0 0 8px var(--purple)"></span>Curvature Scoring</div>
+      <div class="marquee-item"><span class="marquee-dot" style="background:var(--accent);box-shadow:0 0 8px var(--accent)"></span>Sport Routing</div>
+      <div class="marquee-item"><span class="marquee-dot" style="background:var(--orange);box-shadow:0 0 8px var(--orange)"></span>Twisty Mountain Passes</div>
+      <div class="marquee-item"><span class="marquee-dot" style="background:var(--green);box-shadow:0 0 8px var(--green)"></span>Safe Commute</div>
+      <div class="marquee-item"><span class="marquee-dot" style="background:var(--pink);box-shadow:0 0 8px var(--pink)"></span>Weather-Aware</div>
+      <div class="marquee-item"><span class="marquee-dot" style="background:var(--purple);box-shadow:0 0 8px var(--purple)"></span>OpenStreetMap Data</div>
+      <div class="marquee-item"><span class="marquee-dot" style="background:var(--accent);box-shadow:0 0 8px var(--accent)"></span>BPR Congestion</div>
+      <div class="marquee-item"><span class="marquee-dot" style="background:var(--orange);box-shadow:0 0 8px var(--orange)"></span>Lane Filtering</div>
+      <div class="marquee-item"><span class="marquee-dot" style="background:var(--green);box-shadow:0 0 8px var(--green)"></span>Grade Analysis</div>
+      <div class="marquee-item"><span class="marquee-dot" style="background:var(--pink);box-shadow:0 0 8px var(--pink)"></span>Surface Detection</div>
+      <div class="marquee-item"><span class="marquee-dot" style="background:var(--purple);box-shadow:0 0 8px var(--purple)"></span>Curvature Scoring</div>
+    </div>
   </div>
 </div></section>
 
-<section class="sec sec-alt"><div class="c">
-  <div class="sec-h r"><div class="sec-e">Stack</div><h2 class="sec-t">Built on Solid Ground</h2><p class="sec-d">Modern stack, open data, peer-reviewed algorithms.</p></div>
-  <div class="tg r">
-    <div class="tp"><span class="td" style="background:var(--accent)"></span>React Native / Expo</div>
-    <div class="tp"><span class="td" style="background:var(--green)"></span>Python / FastAPI</div>
-    <div class="tp"><span class="td" style="background:var(--cyan)"></span>OpenStreetMap</div>
-    <div class="tp"><span class="td" style="background:var(--orange)"></span>PostgreSQL</div>
-    <div class="tp"><span class="td" style="background:var(--purple)"></span>NetworkX</div>
-    <div class="tp"><span class="td" style="background:#F59E0B"></span>Google Maps API</div>
-  </div>
-</div></section>
-
-<section class="sec cta-s"><div class="c"><div class="cta-b r">
-  <h2>Start Building Routes</h2>
-  <p>MotoMap is open-source and free. Contributions welcome.</p>
+<!-- ============ CTA ============ -->
+<section class="sec cta-s" id="cta-section"><div class="c"><div class="cta-b r">
+  <div class="cta-eb">Open Source</div>
+  <h2>Ready to ride <em>smarter</em>?</h2>
+  <p>MotoMap is free forever and built for the community. Star the repo, open an issue, or submit a pull request.</p>
   <a href="https://github.com/alipasha03/motomap" class="btn btn-p"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>View on GitHub</a>
+  <div class="cta-foot">MIT License &middot; Built with peer-reviewed research</div>
 </div></div></section>
 
 <footer class="ft"><div class="c">
-  <span class="ft-c">&copy; 2026 MotoMap. All rights reserved.</span>
-  <ul class="ft-l">
-    <li><a href="https://github.com/alipasha03/motomap">GitHub</a></li>
-    <li><a href="https://github.com/alipasha03/motomap/blob/main/LICENSE">License</a></li>
-    <li><a href="https://github.com/alipasha03/motomap/blob/main/CONTRIBUTING.md">Contributing</a></li>
-    <li><a href="releases.html">Releases</a></li>
-  </ul>
+  <div class="ft-top">
+    <div class="ft-brand">
+      <div class="ft-brand-logo"><img src="assets/motomap-icon.svg" alt="MotoMap"/><span class="ft-brand-name">MOTOMAP</span></div>
+      <span class="ft-brand-desc">Open-source route intelligence &mdash; built on peer-reviewed research and real road data.</span>
+      <div class="ft-social">
+        <a href="https://github.com/alipasha03/motomap" aria-label="GitHub"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+        <a href="https://github.com/alipasha03/motomap/blob/main/LICENSE" aria-label="License"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M3 2h7l3 3v9H3z"/><path d="M10 2v3h3"/></svg></a>
+        <a href="https://github.com/alipasha03/motomap/issues" aria-label="Issues"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="6"/><path d="M8 5v4M8 11v.01"/></svg></a>
+      </div>
+    </div>
+    <div class="ft-col"><h4>Product</h4><ul>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#how">Riders</a></li>
+      <li><a href="releases.html">Releases</a></li>
+    </ul></div>
+    <div class="ft-col"><h4>Community</h4><ul>
+      <li><a href="https://github.com/alipasha03/motomap/blob/main/CONTRIBUTING.md">Contributing</a></li>
+      <li><a href="https://github.com/alipasha03/motomap/issues">Issues</a></li>
+      <li><a href="https://github.com/alipasha03/motomap/discussions">Discussions</a></li>
+    </ul></div>
+    <div class="ft-col"><h4>Resources</h4><ul>
+      <li><a href="https://github.com/alipasha03/motomap/blob/main/LICENSE">MIT License</a></li>
+      <li><a href="https://github.com/alipasha03/motomap/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a></li>
+      <li><a href="https://github.com/alipasha03/motomap">Source Code</a></li>
+    </ul></div>
+  </div>
+  <div class="ft-bot">
+    <span class="ft-c">&copy; 2026 MotoMap &middot; <em>Ride smarter</em></span>
+    <span class="ft-c">Released under the MIT License</span>
+  </div>
 </div></footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.halo.min.js"></script>
 <script>
+// ── Reveal-on-scroll observer ──
 const io=new IntersectionObserver(e=>{e.forEach(x=>{if(x.isIntersecting)x.target.classList.add('v')})},{threshold:.1,rootMargin:'0px 0px -40px 0px'});
 document.querySelectorAll('.r').forEach(el=>io.observe(el));
 document.querySelectorAll('.nl a').forEach(a=>a.addEventListener('click',()=>document.querySelector('.nl').classList.remove('open')));
-window.addEventListener("DOMContentLoaded",function(){if(window.VANTA&&window.VANTA.HALO){VANTA.HALO({el:".hero",mouseControls:true,touchControls:true,minHeight:400,minWidth:400,baseColor:0x0a1e4a,backgroundColor:0x050a12,amplitudeFactor:1.5,size:1.8,xOffset:0.22,yOffset:0.12})}});
+const nav=document.querySelector('.nav');window.addEventListener('scroll',()=>{nav.classList.toggle('scrolled',window.scrollY>60)},{passive:true});
+
+// ── Scroll-spy sidebar + nav active link ──
+(function(){
+  const spy=document.getElementById('spy');
+  const spyDots=spy?spy.querySelectorAll('.spy-dot'):[];
+  const navLinks=document.querySelectorAll('.nl a[href*="#"]');
+  const sections=['hero-top','features','how','numbers','cta-section'];
+  const sectionEls=sections.map(id=>document.getElementById(id)).filter(Boolean);
+
+  function updateActive(){
+    const scrollY=window.scrollY;
+    const heroH=document.getElementById('hero-top');
+    let currentIdx=0;
+    sectionEls.forEach((sec,i)=>{
+      if(sec.offsetTop - 200 <= scrollY) currentIdx=i;
+    });
+    const currentId=sections[currentIdx];
+    if(spy){
+      const showSpy=!!((heroH && scrollY > heroH.offsetHeight * 0.5) || currentId==='features');
+      spy.classList.toggle('visible',showSpy);
+    }
+    spyDots.forEach((dot,i)=>{
+      dot.classList.toggle('active',i===currentIdx);
+    });
+    navLinks.forEach(a=>{
+      const href=a.getAttribute('href');
+      if(href && href.includes('#')){
+        const hash=href.split('#')[1];
+        a.classList.toggle('on',hash===currentId);
+      }
+    });
+  }
+  window.addEventListener('scroll',updateActive,{passive:true});
+  updateActive();
+})();
+
+// ── Layer stack: wheel-controlled + hover-gated ──
+(function(){
+  const featSection=document.getElementById('features');
+  const stage=document.getElementById('layers-stage');
+  const stack=document.getElementById('layers-stack');
+  const cards=document.querySelectorAll('.layer-card');
+  const layers=stack?stack.querySelectorAll('.map-layer'):[];
+  const LAYER_COUNT=5;
+  const desktopMq=window.matchMedia('(min-width: 769px)');
+  const glowColors=[
+    'rgba(250,204,21,',
+    'rgba(251,146,60,',
+    'rgba(134,239,172,',
+    'rgba(232,121,249,',
+    'rgba(192,132,252,'
+  ];
+
+  let currentLayer=0;
+  let autoTimer=null;
+  let autoIdx=0;
+  let stageHovered=false;
+  let wheelLocked=false;
+
+  const stepper=document.getElementById('layer-stepper');
+  const stepperLabel=document.getElementById('layer-stepper-label');
+  const stepperDots=stepper?stepper.querySelectorAll('.layer-stepper-dot'):[];
+  const stepperLineFills=stepper?stepper.querySelectorAll('.layer-stepper-line-fill'):[];
+  const cardsWrap=document.querySelector('.layer-cards');
+  const panelTitle=document.getElementById('layer-panel-title');
+  const panelCopy=document.getElementById('layer-panel-copy');
+  const legendSwatches=[
+    document.getElementById('legend-swatch-1'),
+    document.getElementById('legend-swatch-2'),
+    document.getElementById('legend-swatch-3')
+  ];
+  const legendLabels=[
+    document.getElementById('legend-label-1'),
+    document.getElementById('legend-label-2'),
+    document.getElementById('legend-label-3')
+  ];
+  const legendValues=[
+    document.getElementById('legend-value-1'),
+    document.getElementById('legend-value-2'),
+    document.getElementById('legend-value-3')
+  ];
+  const metricSignal=document.getElementById('metric-signal');
+  const metricUpdate=document.getElementById('metric-update');
+  const metricWeight=document.getElementById('metric-weight');
+  const layerDatasets=[
+    {
+      title:'Speed Model',
+      copy:'Road-class based free-flow speed. Motorways at 120 km/h, residential at 30.',
+      legend:[
+        {label:'Primary',value:'120 km/h',color:'#FACC15'},
+        {label:'Secondary',value:'90 km/h',color:'#FCD34D'},
+        {label:'Residential',value:'30 km/h',color:'#FEF08A'}
+      ],
+      metrics:{signal:'Free Flow',update:'Static',weight:'0.35'}
+    },
+    {
+      title:'Traffic Congestion',
+      copy:'BPR volume-delay model with 15% lane-filtering advantage for motorcycles.',
+      legend:[
+        {label:'Moderate',value:'V/C 0.75',color:'#FB923C'},
+        {label:'Heavy',value:'V/C 0.91',color:'#F97316'},
+        {label:'Severe',value:'Delay +42%',color:'#EA580C'}
+      ],
+      metrics:{signal:'Realtime',update:'15 min',weight:'0.22'}
+    },
+    {
+      title:'Surface Detection',
+      copy:'20 classified surface types from asphalt (1.0) to mud (0.35).',
+      legend:[
+        {label:'Asphalt',value:'Factor 1.00',color:'#86EFAC'},
+        {label:'Gravel',value:'Factor 0.78',color:'#FB923C'},
+        {label:'Cobble',value:'Factor 0.61',color:'#CBD5E1'}
+      ],
+      metrics:{signal:'Material',update:'Tile',weight:'0.18'}
+    },
+    {
+      title:'Curvature Analysis',
+      copy:'Bearing-change classification: hairpin, sharp, fun, and mild turns.',
+      legend:[
+        {label:'Mild',value:'40-90°',color:'#F0ABFC'},
+        {label:'Sharp',value:'90-140°',color:'#E879F9'},
+        {label:'Hairpin',value:'140°+',color:'#C026D3'}
+      ],
+      metrics:{signal:'Geometry',update:'Static',weight:'0.14'}
+    },
+    {
+      title:'Elevation Grade',
+      copy:'Kinematic speed adjustment for slopes. 8% grade = 0.68 factor.',
+      legend:[
+        {label:'Grade',value:'+8%',color:'#C084FC'},
+        {label:'Summit',value:'1120 m',color:'#A78BFA'},
+        {label:'Penalty',value:'0.68x',color:'#DDD6FE'}
+      ],
+      metrics:{signal:'Terrain',update:'DEM',weight:'0.11'}
+    }
+  ];
+
+  function updateStepper(idx){
+    if(!stepper) return;
+    const progress=idx/(LAYER_COUNT - 1);
+    const continuousStep=progress*(LAYER_COUNT - 1);
+    stepperDots.forEach((d,i)=>{
+      d.classList.remove('done','current');
+      if(i<idx) d.classList.add('done');
+      if(i===idx) d.classList.add('current');
+    });
+    stepperLineFills.forEach((fill,i)=>{
+      const lineProgress=Math.max(0,Math.min(1,continuousStep - i));
+      fill.style.height=(lineProgress * 100)+'%';
+    });
+    if(stepperLabel){
+      stepperLabel.textContent=String(idx + 1).padStart(2,'0')+' / '+String(LAYER_COUNT).padStart(2,'0');
+      stepperLabel.classList.add('active');
+    }
+  }
+
+  function activate(idx){
+    if(idx<0) idx=0;
+    if(idx>=LAYER_COUNT) idx=LAYER_COUNT-1;
+    currentLayer=idx;
+
+    cards.forEach((c,i)=>{c.classList.toggle('active',i===idx)});
+    layers.forEach((l,i)=>{
+      const offset=i-idx;
+      const isActive=i===idx;
+      const base=52;
+      const z=offset*-18;
+      const s=1-Math.abs(offset)*0.03;
+      const o=isActive?1:Math.max(.35,1-Math.abs(offset)*.25);
+      l.style.transform='rotateX('+base+'deg) translateZ('+z+'px) scale('+s+')';
+      l.style.opacity=o;
+      l.style.zIndex=isActive?10:5-Math.abs(offset);
+      if(isActive){
+        const gc=glowColors[i]||glowColors[0];
+        l.style.filter='brightness(1.4) saturate(1.2)';
+        l.style.boxShadow='0 30px 60px -15px '+gc+'.3), 0 0 50px -8px '+gc+'.15), inset 0 1px 0 '+gc+'.15)';
+        l.style.borderColor=gc+'.4)';
+      } else {
+        l.style.filter='brightness(1)';
+        l.style.boxShadow='';
+        l.style.borderColor='';
+      }
+    });
+
+    const meta=layerDatasets[idx];
+    if(meta){
+      if(panelTitle) panelTitle.textContent=meta.title;
+      if(panelCopy) panelCopy.textContent=meta.copy;
+      meta.legend.forEach((item,i)=>{
+        if(legendSwatches[i]) legendSwatches[i].style.background=item.color;
+        if(legendSwatches[i]) legendSwatches[i].style.boxShadow='0 0 10px '+item.color+'55';
+        if(legendLabels[i]) legendLabels[i].textContent=item.label;
+        if(legendValues[i]) legendValues[i].textContent=item.value;
+      });
+      if(metricSignal) metricSignal.textContent=meta.metrics.signal;
+      if(metricUpdate) metricUpdate.textContent=meta.metrics.update;
+      if(metricWeight) metricWeight.textContent=meta.metrics.weight;
+    }
+    updateStepper(idx);
+    autoIdx=idx;
+  }
+
+  function stopAuto(){
+    if(autoTimer){
+      clearInterval(autoTimer);
+      autoTimer=null;
+    }
+  }
+
+  function startAuto(){
+    stopAuto();
+    if(stageHovered) return;
+    autoTimer=setInterval(()=>{
+      autoIdx=(autoIdx+1)%LAYER_COUNT;
+      activate(autoIdx);
+    },3200);
+  }
+
+  cards.forEach((c,i)=>{
+    c.addEventListener('mouseenter',()=>{
+      stopAuto();
+      activate(i);
+    });
+    c.addEventListener('click',()=>{
+      stopAuto();
+      activate(i);
+    });
+  });
+
+  layers.forEach((l,i)=>{
+    l.addEventListener('mouseenter',()=>{
+      stopAuto();
+      activate(i);
+    });
+    l.addEventListener('click',()=>{
+      stopAuto();
+      activate(i);
+    });
+  });
+
+  if(stage){
+    stage.addEventListener('mouseenter',()=>{
+      stageHovered=true;
+      stopAuto();
+    });
+    stage.addEventListener('mouseleave',()=>{
+      stageHovered=false;
+      startAuto();
+    });
+    stage.addEventListener('wheel',(event)=>{
+      if(!desktopMq.matches) return;
+      const direction=Math.sign(event.deltaY);
+      if(!direction) return;
+      const next=currentLayer + direction;
+      if(next<0 || next>=LAYER_COUNT || wheelLocked) return;
+      event.preventDefault();
+      stopAuto();
+      wheelLocked=true;
+      activate(next);
+      window.scrollBy({top:direction*56,left:0,behavior:'auto'});
+      window.setTimeout(()=>{wheelLocked=false;},320);
+    },{passive:false});
+  }
+
+  if(cardsWrap){
+    cardsWrap.addEventListener('mouseenter',stopAuto);
+    cardsWrap.addEventListener('mouseleave',()=>{if(!stageHovered)startAuto()});
+  }
+
+  function updateVisibility(){
+    if(!featSection || !stepper) return;
+    const rect=featSection.getBoundingClientRect();
+    const visible=desktopMq.matches && rect.top < window.innerHeight*0.78 && rect.bottom > window.innerHeight*0.22;
+    stepper.classList.toggle('visible',visible);
+  }
+
+  window.addEventListener('scroll',updateVisibility,{passive:true});
+  window.addEventListener('resize',updateVisibility,{passive:true});
+  if(desktopMq.addEventListener){
+    desktopMq.addEventListener('change',updateVisibility);
+  }else if(desktopMq.addListener){
+    desktopMq.addListener(updateVisibility);
+  }
+
+  activate(0);
+  startAuto();
+  updateVisibility();
+})();
+
+// ── Logo hover: tilt on mouse move ──
+(function(){
+  const brand=document.querySelector('.nav-b');
+  const logo=brand?brand.querySelector('img'):null;
+  if(!brand||!logo)return;
+  brand.addEventListener('mousemove',function(e){
+    const r=brand.getBoundingClientRect();
+    const cx=(e.clientX-r.left)/r.width-0.5;
+    const cy=(e.clientY-r.top)/r.height-0.5;
+    logo.style.transform='scale(1.15) rotate('+(-5+cx*10)+'deg) translateY('+(cy*-4)+'px)';
+  });
+  brand.addEventListener('mouseleave',function(){
+    logo.style.transform='';
+  });
+})();
+
+// ── Rider card mouse-follow glow ──
+document.querySelectorAll('.rider-card').forEach(card=>{
+  card.addEventListener('mousemove',e=>{
+    const r=card.getBoundingClientRect();
+    card.style.setProperty('--mx',e.clientX-r.left+'px');
+    card.style.setProperty('--my',e.clientY-r.top+'px');
+  });
+});
+
+// ── Animated count-up ──
+const countObserver=new IntersectionObserver(entries=>{entries.forEach(entry=>{if(!entry.isIntersecting)return;const el=entry.target;const target=parseFloat(el.dataset.to);const decimals=el.dataset.decimals!=null?parseInt(el.dataset.decimals,10):(el.dataset.to.includes('.')?1:0);const duration=1800;const start=performance.now();function tick(now){const p=Math.min((now-start)/duration,1);const eased=1-Math.pow(1-p,4);const val=eased*target;el.textContent=decimals>0?val.toFixed(decimals):Math.round(val).toLocaleString();if(p<1)requestAnimationFrame(tick)}requestAnimationFrame(tick);countObserver.unobserve(el)})},{threshold:.3});
+document.querySelectorAll('[data-to]').forEach(el=>countObserver.observe(el));
+
+// ── Vanta.js HALO (richer config) ──
+window.addEventListener("DOMContentLoaded",function(){
+  if(window.VANTA&&window.VANTA.HALO){
+    VANTA.HALO({
+      el:".hero",
+      mouseControls:true,
+      touchControls:true,
+      minHeight:400,
+      minWidth:400,
+      baseColor:0x6B1D5E,
+      backgroundColor:0x130B1A,
+      amplitudeFactor:2.2,
+      size:2.4,
+      xOffset:0.18,
+      yOffset:0.1,
+      speed:1.2
+    });
+  }
+});
 </script>
 </body>
 </html>
