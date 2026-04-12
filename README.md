@@ -11,7 +11,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-green.svg)](https://python.org)
-[![Release](https://img.shields.io/badge/Release-v0.4.0-black.svg)](https://github.com/alipasha03/motomap/releases/tag/v0.4.0)
+[![Release](https://img.shields.io/badge/Release-v0.6.0-black.svg)](https://github.com/alipasha03/motomap/releases/tag/v0.6.0)
 [![Status](https://img.shields.io/badge/Status-In%20Development-orange.svg)]()
 
 *Most navigation apps optimize for cars.*
@@ -59,9 +59,25 @@
 
 ## Overview
 
-MOTOMAP is an open-source routing engine focused on motorcycle behavior rather than general-purpose car navigation. The project combines OSM road graphs, elevation and grade data, traffic-aware travel times, and rider preferences to produce routes that are faster, safer, or more enjoyable depending on the selected mode.
+MOTOMAP is an open-source routing engine focused on motorcycle behavior rather than general-purpose car navigation. The project combines OSM road graphs, elevation and grade data, live traffic-aware travel times, weather and incident safety signals, and rider preferences to produce routes that are faster, safer, or more enjoyable depending on the selected mode.
 
 The core routing algorithm lives in a single policy module ([`motomap/algorithm.py`](motomap/algorithm.py)) that the entire project depends on. All cost functions, filtering rules, and search logic are centralized there, preventing rule duplication across loaders, validators, and API code.
+
+---
+
+## New in v0.6.0
+
+- Live traffic-aware edge timing: `vc_ratio`, directional `traffic_volume_vph`, provider traffic categories, and observed `traffic_speed_kmh` now feed the speed model directly.
+- BPR plus live-speed blending: the car-speed estimate blends structural congestion modeling with live observations instead of relying on one flat multiplier.
+- Context-aware lane filtering: filtering is now treated as a bounded low-speed mixed-traffic maneuver and is suppressed or reduced by tunnels, night context, heavy vehicles, narrow lanes, and bad weather.
+- Weather and incident-aware route cost: `standart`, `viraj_keyfi`, and `guvenli` now react differently to `weather_overall_safety` and `incident_severity`.
+- Automatic traffic cache invalidation: live traffic and safety metadata now participate in graph cache state, so updated edge traffic forces travel-time recomputation automatically.
+
+See:
+
+- [`docs/releases.html`](docs/releases.html)
+- [`docs/release-notes/v0.6.0.md`](docs/release-notes/v0.6.0.md)
+- [`docs/research/2026-04-12-live-traffic-motorcycle-routing.md`](docs/research/2026-04-12-live-traffic-motorcycle-routing.md)
 
 ---
 
@@ -90,6 +106,9 @@ motomap/                          # Core Python package
   elevation.py                    # Elevation API with retry/fallback/degrade
   osm_validator.py                # Compatibility wrappers for edge filtering
   router.py                       # Compatibility exports for routing functions
+  weather/
+    assessment.py                 # Road safety and lane-splitting weather assessment
+    models.py                     # Weather data and road-condition dataclasses
 
 tests/                            # Test suite
   test_algorithm.py               # Core algorithm unit + randomized tests
@@ -205,11 +224,19 @@ derived from HCM (Highway Capacity Manual) Chapter 23 methodology, adapted for
 motorcycle dynamics:
 
 $$
-V_{eff}(e) = V_{posted}(e) \times f_{class}(e) \times f_{surface}(e) \times f_{grade}(e) \times f_{global}
+V_{ff}(e) = V_{posted}(e) \times f_{class}(e) \times f_{surface}(e) \times f_{grade}(e) \times f_{global}
 $$
 
 $$
-T_{road}(e) = \frac{L(e)}{V_{eff}(e) \;/\; 3.6} + \delta_{intersection}(e)
+V_{car}^{BPR}(e) = V_{ff}(e) \times \frac{1}{1 + \alpha_e \left(\frac{V}{C}\right)_e^{\beta_e}}
+$$
+
+$$
+V_{car}^{*}(e) = (1-\lambda_e)\,V_{car}^{BPR}(e) + \lambda_e\,V_{live}(e)
+$$
+
+$$
+T_{road}(e) = \frac{L(e)}{V_{moto}(e) \;/\; 3.6} + \delta_{intersection}(e)
 $$
 
 | Factor | Meaning | Source |
@@ -217,7 +244,9 @@ $$
 | $f_{class}$ | Road-class free-flow factor (HCM Table 23-1 adapted) | `FREE_FLOW_SPEED_FACTOR` in config |
 | $f_{surface}$ | Pavement quality reduction (motorcycle-specific) | `SURFACE_SPEED_FACTOR` in config |
 | $f_{grade}$ | Grade speed reduction: $\max(0.4,\; 1 - 0.35 \times \|grade\|)$ | HCM Exhibit 23-8 simplified |
-| $f_{global}$ | Runtime calibration knob (residual congestion proxy) | `MOTOMAP_SPEED_FACTOR` env (default 0.55) |
+| $f_{global}$ | Runtime calibration knob | `MOTOMAP_SPEED_FACTOR` env (default 0.55) |
+| $\left(\frac{V}{C}\right)_e$ | direct `vc_ratio` or directional volume/capacity estimate | live traffic metadata |
+| $\lambda_e$ | confidence weight for live speed blending | `traffic_confidence` / `speed_confidence` |
 | $\delta_{intersection}$ | Per-edge intersection delay by road class | `INTERSECTION_DELAY_S` in config |
 
 #### Road-Class Free-Flow Factors
@@ -270,38 +299,37 @@ $$
 > **Calibration loader:** `motomap/algorithm.py` &mdash; `runtime_calibration_from_env()`
 > reads and clamps override values from environment variables.
 >
-> **Design note:** Without real-time traffic volume data, the model cannot apply the
-> full BPR (Bureau of Public Roads) volume-delay function
-> $t = t_{ff} \times [1 + \alpha(V/C)^\beta]$.  The `speed_factor` serves as a
-> residual congestion proxy that can be tuned per deployment context or replaced
-> with a BPR layer when live traffic feeds become available.
+> **Current implementation:** the routing core now accepts live traffic through
+> `edge_data["vc_ratio"]`, directional `traffic_volume_vph`, provider traffic
+> categories such as `NORMAL` / `SLOW` / `TRAFFIC_JAM`, and observed
+> `traffic_speed_kmh`. When those are missing, the model falls back to
+> `PEAK_HOUR_VC_RATIO` planning defaults.
 
 ---
 
 ### 3. Lane-Filtering Speed Model
 
-Moto speed is estimated from the forward lane count and current traffic conditions:
+Lane filtering is now modeled as a bounded low-speed mixed-traffic maneuver rather than a permanent speed bonus:
 
 $$
-V_{moto} = \begin{cases}
-V_{car} + 5 & \text{if } n_{lane} = 1 \\
-\max(V_{car} + 15,\ 25) & \text{if } n_{lane} = 2 \\
-\max(V_{car} + 20,\ 35) & \text{if } n_{lane} \geq 3
-\end{cases}
+V_{moto}(e) =
+\min\!\left(
+V_{car}^{*}(e) + \Delta_{lane}(e)\,m_{weather}(e)\,m_{context}(e),
+V_{filter,max}
+\right)
 $$
 
 Where:
 
-- $V_{moto}$ is the estimated motorcycle speed in km/h
-- $V_{car}$ is the observed or simulated car speed in km/h
-- $n_{lane}$ is the number of forward lanes
+- $V_{car}^{*}(e)$ is the blended car-speed estimate after BPR and live traffic
+- $\Delta_{lane}(e)$ is the lane-count-based motorcycle advantage
+- $m_{weather}(e)$ comes from `lane_splitting_modifier` or weather safety fallback
+- $m_{context}(e)$ is reduced by tunnel context, night riding, narrow lane width, and heavy-vehicle share
 
-If traffic is already flowing close to the speed limit, the lane-filtering bonus is disabled and motorcycles follow the same effective speed as cars.
+Filtering only activates in congested low-speed conditions. When traffic is flowing freely, motorcycles fall back to the same effective movement speed as surrounding traffic.
 
-> **Note:** The lane-filtering speed model is described here as a design target.
-> The current implementation uses `maxspeed * speed_factor` as a practical approximation
-> until live traffic data is integrated.
-> See [`motomap/algorithm.py:511-537`](motomap/algorithm.py#L511) &mdash; `compute_edge_travel_time()`.
+> **Current implementation:** see `motomap/algorithm.py` &mdash;
+> `_resolve_lane_splitting_modifier()` and `_effective_speed_kmh()`.
 
 ---
 
@@ -828,7 +856,7 @@ High-level phase plan:
 2. **Core routing:** lane filtering, CC restrictions, grade penalties, cost engine, router
 3. **Touring mode:** surface preferences, sinuosity, scenic weighting
 4. **Evaluation and simulation:** benchmarks, map matching, metrics, visualization
-5. **Delivery:** API layer, live traffic integration, mobile MVP
+5. **Delivery:** API layer, production traffic-provider adapters, mobile MVP
 
 The detailed implementation plans live in [`docs/plans/`](docs/plans/).
 
@@ -836,9 +864,9 @@ The detailed implementation plans live in [`docs/plans/`](docs/plans/).
 
 ## Project Status
 
-- Completed: algorithm framing, documentation baseline, initial data pipeline, benchmark planning
-- In progress: routing calibration, OSM filtering, benchmark execution, backend hardening
-- Planned: production API, live traffic integration, mobile product surface
+- Completed: live traffic-aware routing core, weather-aware route costs, documentation baseline, initial data pipeline, GitHub and website release notes
+- In progress: provider-specific traffic adapters, routing calibration, benchmark execution, backend hardening
+- Planned: production API rollout, mobile product surface, trace-based calibration loops
 
 Open GitHub issues observed via `gh`:
 
@@ -854,9 +882,13 @@ Open GitHub issues observed via `gh`:
 | Motorcycle displacement | $CC$ | user profile | enables/disables highway access and grade penalties | [`algorithm.py:626`](motomap/algorithm.py#L626), [`algorithm.py:660`](motomap/algorithm.py#L660) |
 | Forward lane count | $n_{lane}$ | OSM `lanes` + `oneway` | increases lane-filtering speed advantage | [`algorithm.py:392`](motomap/algorithm.py#L392) |
 | Road grade | $\alpha$ | DEM / elevation APIs | raises edge cost on steep climbs | [`elevation.py:89`](motomap/elevation.py#L89) |
-| Surface | `surface` | OSM | affects touring preferences | [`config.py:51`](motomap/config.py#L51) |
+| Surface | `surface` | OSM | affects free-flow speed and touring preferences | [`config.py:51`](motomap/config.py#L51) |
 | Riding mode | `mode` | user input | switches objective between time and enjoyment | [`algorithm.py:674`](motomap/algorithm.py#L674) |
-| Car speed | $V_{car}$ | live traffic or simulation | drives lane-filtering ETA model | [`algorithm.py:511`](motomap/algorithm.py#L511) |
+| V/C ratio | $\left(\frac{V}{C}\right)$ | direct feed or live volume/capacity | drives BPR congestion response | `algorithm.py` |
+| Live speed | $V_{live}$ | traffic provider feed | blended into edge speed estimate | `algorithm.py` |
+| Live speed confidence | $\lambda$ | traffic provider feed | controls trust in observed speed | `algorithm.py` |
+| Weather safety | $S_e$ | weather assessment | slows edges and penalizes route cost | `algorithm.py`, `weather/assessment.py` |
+| Incident severity | $I_e$ | traffic/incident feed | increases mode-specific edge cost | `algorithm.py` |
 | Speed limit | $V_{max}$ | OSM `maxspeed` | caps optimistic motorcycle speed | [`config.py:18`](motomap/config.py#L18) |
 | Toll flag | `toll` | OSM | toll-free route filtering | [`algorithm.py:448`](motomap/algorithm.py#L448) |
 | Ferry flag | `route`/`ferry` | OSM | ferry edge detection and timing | [`algorithm.py:460`](motomap/algorithm.py#L460) |
@@ -865,7 +897,14 @@ Open GitHub issues observed via `gh`:
 
 ## Version Notes
 
-The repository currently has a Git tag at `v0.4.0`. Some application manifests still report `1.0.0` as a local package/API version, so release versioning is not yet fully normalized across the repo.
+- Current draft release branch: `feature/live-traffic-routing-v0.6.0`
+- Current release tag: `v0.6.0`
+- Main additions in `v0.6.0`: live traffic-aware routing, directional `V/C` from flow, live-speed blending, weather and incident-aware edge costs, context-aware lane filtering, and updated GitHub / website release notes
+
+For the full release history and formula notes, see:
+
+- [`docs/releases.html`](docs/releases.html)
+- [`docs/release-notes/v0.6.0.md`](docs/release-notes/v0.6.0.md)
 
 ---
 

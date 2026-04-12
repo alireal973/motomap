@@ -7,33 +7,52 @@
 
 # MOTOMAP
 
-### Motosikletçiler Için Akilli Rota Optimizasyon Motoru
+### MotosikletÃ§iler IÃ§in Akilli Rota Optimizasyon Motoru
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-green.svg)](https://python.org)
+[![Release](https://img.shields.io/badge/Release-v0.6.0-black.svg)](https://github.com/alipasha03/motomap/releases/tag/v0.6.0)
 [![Status](https://img.shields.io/badge/Status-Gelistiriliyor-orange.svg)]()
 
-*Standart navigasyon uygulamalari arabalara göre rota çizerken,*
+*Standart navigasyon uygulamalari arabalara gÃ¶re rota Ã§izerken,*
 *MOTOMAP motosikletlerin fiziksel avantajlarini ve kisitlamalarini matematiksel olarak modelleyerek*
-*bireysellestirilmis rotalar üretir.*
+*bireysellestirilmis rotalar Ã¼retir.*
 
 </div>
 
 ---
 
-## Içindekiler
+## v0.6.0 Guncellemesi
+
+Bu surumde README, algoritma ve release note'lar yeni canli trafik modeline gore guncellendi.
+
+- Canli trafik destekli rota maliyeti: `vc_ratio`, `traffic_volume_vph`, trafik hiz kategorileri ve `traffic_speed_kmh` artik dogrudan hiz modeline giriyor.
+- BPR + live speed blending: yapisal sikisiklik modeli ile canli gozlem birlestiriliyor.
+- Baglama duyarli lane filtering: tunnel, gece, agir tasit payi, dar serit ve hava kosullari filtreleme avantajini azaltabiliyor veya kapatabiliyor.
+- Weather ve incident-aware route cost: `weather_overall_safety` ve `incident_severity` artik rota agirligina giriyor.
+- Otomatik cache invalidation: edge trafik verisi degisince travel time tekrar hesaplaniyor.
+
+Detaylar:
+
+- [`docs/releases.html`](docs/releases.html)
+- [`docs/release-notes/v0.6.0.md`](docs/release-notes/v0.6.0.md)
+- [`docs/research/2026-04-12-live-traffic-motorcycle-routing.md`](docs/research/2026-04-12-live-traffic-motorcycle-routing.md)
+
+---
+
+## IÃ§indekiler
 
 - [Neden MOTOMAP?](#neden-motomap)
-- [Temel Özellikler](#temel-özellikler)
+- [Temel Ã–zellikler](#temel-Ã¶zellikler)
 - [Teknik Mimari](#teknik-mimari)
 - [Veri Kaynaklari](#veri-kaynaklari)
 - [Teknoloji Yigini](#teknoloji-yigini)
 - [Kurulum](#kurulum)
-- [Hizli Baslangiç](#hizli-baslangiç)
-- [DEM/API Çiktilari](#demapi-çiktilari)
+- [Hizli BaslangiÃ§](#hizli-baslangiÃ§)
+- [DEM/API Ã‡iktilari](#demapi-Ã§iktilari)
 - [Uygulama Plani (Implementation Plan)](#uygulama-plani-implementation-plan)
 - [Proje Durumu](#proje-durumu)
-- [Algoritma Parametreleri Özet Tablosu](#algoritma-parametreleri-özet-tablosu)
+- [Algoritma Parametreleri Ã–zet Tablosu](#algoritma-parametreleri-Ã¶zet-tablosu)
 - [Lisans](#lisans)
 - [Yazar](#yazar)
 
@@ -41,48 +60,73 @@
 
 ## Neden MOTOMAP?
 
-Mevcut navigasyon uygulamalari (Google Maps, Yandex, Apple Maps) tüm araçlara ayni rotayi sunar. Ancak motosikletler trafikte temelden farkli hareket eder:
+Mevcut navigasyon uygulamalari (Google Maps, Yandex, Apple Maps) tÃ¼m araÃ§lara ayni rotayi sunar. Ancak motosikletler trafikte temelden farkli hareket eder:
 
-> Sikisik bir E-5 trafiginde arabalar **duragan** haldeyken, motosikletler serit aralarindan siyrilarak ilerleyebilir. Google Maps "45 dakika" gösterirken, bir motosikletçi ayni mesafeyi **15 dakikada** katedebilir.
+> Sikisik bir E-5 trafiginde arabalar **duragan** haldeyken, motosikletler serit aralarindan siyrilarak ilerleyebilir. Google Maps "45 dakika" gÃ¶sterirken, bir motosikletÃ§i ayni mesafeyi **15 dakikada** katedebilir.
 
-MOTOMAP bu farki algoritmik olarak modelleyen **ilk açik kaynak navigasyon motorudur.**
+MOTOMAP bu farki algoritmik olarak modelleyen **ilk aÃ§ik kaynak navigasyon motorudur.**
 
 ---
 
-## Temel Özellikler
+## Temel Ã–zellikler
 
 ### 1. Serit Filtreleme (Lane Filtering)
 
-Sikisik trafikte motosikletlerin serit aralarindan geçebilme avantajini modelleyen dinamik hiz hesaplamasi. Motosiklet hizi, gidis yönündeki serit sayisina ve anlik trafik durumuna bagli olarak hesaplanir:
+Lane filtering artik sabit bir hiz bonusu degil, dusuk hizli mixed-traffic manevrasi olarak modelleniyor. Temel fikir:
 
 $$
-V_{moto} = \begin{cases}
-V_{araba} + 5 & \text{if } n_{serit} = 1 \\
-\max(V_{araba} + 15,\ 25) & \text{if } n_{serit} = 2 \\
-\max(V_{araba} + 20,\ 35) & \text{if } n_{serit} \geq 3
-\end{cases}
+V_{moto}(e) =
+\min\!\left(
+V_{araba}^{*}(e) + \Delta_{serit}(e)\,m_{hava}(e)\,m_{baglam}(e),
+V_{filter,max}
+\right)
 $$
 
 Burada:
-- $V_{moto}$ : Motosikletin tahmini hizi (km/s)
-- $V_{araba}$ : Arabalarin anlik ortalama hizi (km/s)
-- $n_{serit}$ : Gidis yönündeki serit sayisi
+- $V_{araba}^{*}$ : BPR + canli trafik ile bulunan araba hizi
+- $\Delta_{serit}$ : gidis yonundeki serit sayisina bagli avantaj
+- $m_{hava}$ : weather lane-splitting modifier
+- $m_{baglam}$ : tunnel, gece, dar serit ve agir tasit gibi baglamsal azalticilar
 
-| Senaryo | Serit (Gidis) | Araba Hizi | Motor Hizi | Açiklama |
-|:---:|:---:|:---:|:---:|:---|
-| Tek seritli yol | 1 | 10 km/s | 10 km/s | Manevra alani dar, sinirli avantaj |
-| Çift seritli cadde | 2 | 10 km/s | 25 km/s | Serit arasi filtreleme mümkün |
-| Genis bulvar / otoyol | 3+ | 5 km/s | 35 km/s | Çoklu kaçis yolu, rahat geçis |
+Filtreleme sadece sikisik ve dusuk hizli trafikte acilir. Trafik akiciysa motor, cevredeki trafik akisina geri doner.
 
-> **Not:** Trafik akici ise ($V_{araba} \geq V_{max} - 10$), filtrelemeye gerek yoktur ve motor arabalarla ayni hizda gider.
+Ek olarak:
+
+- `tunnel=yes` olan kenarlarda filtering bastirilir
+- gece kosullarinda avantaj azaltilir
+- agir tasit orani yuksekse avantaj azaltilir
+- lane width dar ise avantaj azaltilir
 
 ---
 
-### 2. Motor Hacmine Göre Bireysel Rota (CC Bazli Optimizasyon)
+### 1.1 Canli Trafik ve Hava Katmani
+
+Yeni surumde edge travel time su tip girdilerden beslenebilir:
+
+- `vc_ratio`
+- `traffic_volume_vph`
+- `traffic_speed_kmh`
+- `traffic_confidence`
+- `weather_overall_safety`
+- `incident_severity`
+
+Bu sayede sistem sadece OSM hiz limitine degil, edge bazli canli trafik ve guvenlik sinyallerine de bakar.
+
+$$
+V_{araba}^{*}(e) = (1-\lambda_e)\,V_{BPR}(e) + \lambda_e\,V_{live}(e)
+$$
+
+$$
+C_{mod,e} = T_e \cdot \left[1 + \omega_{mod}(1-S_e) + \phi_{mod}I_e\right]
+$$
+
+---
+
+### 2. Motor Hacmine GÃ¶re Bireysel Rota (CC Bazli Optimizasyon)
 
 #### Otoban Kisitlamasi
 
-50cc ve alti motosikletler yasal olarak otobana çikamazlar. Bu kisitlama sonsuz maliyet ile modellenir:
+50cc ve alti motosikletler yasal olarak otobana Ã§ikamazlar. Bu kisitlama sonsuz maliyet ile modellenir:
 
 $$
 C_{otoban}(e) = \begin{cases}
@@ -93,7 +137,7 @@ $$
 
 #### Egim Cezasi
 
-Düsük hacimli motorlar dik yokuslarda zorlanir. Egim cezasi çarpani:
+DÃ¼sÃ¼k hacimli motorlar dik yokuslarda zorlanir. Egim cezasi Ã§arpani:
 
 $$
 C_{egim}(\alpha, CC) = \begin{cases}
@@ -104,7 +148,7 @@ C_{egim}(\alpha, CC) = \begin{cases}
 \end{cases}
 $$
 
-Burada $\alpha$ yolun egim yüzdesidir ve DEM (Digital Elevation Model) verisinden hesaplanir.
+Burada $\alpha$ yolun egim yÃ¼zdesidir ve DEM (Digital Elevation Model) verisinden hesaplanir.
 
 | CC Sinifi | Otoban Erisimi | %5-8 Egim | %8-12 Egim | %12+ Egim |
 |:---:|:---:|:---:|:---:|:---:|
@@ -114,23 +158,23 @@ Burada $\alpha$ yolun egim yüzdesidir ve DEM (Digital Elevation Model) verisinde
 
 ---
 
-### 3. Çift Modlu Sürücü Deneyimi
+### 3. Ã‡ift Modlu SÃ¼rÃ¼cÃ¼ Deneyimi
 
 ```mermaid
 flowchart TD
     A["Kullanici Uygulamaya Girer"]
-    B{"Sürüs Amaci?"}
-    C["IS IÇIN"]
-    D["GEZI IÇIN"]
+    B{"SÃ¼rÃ¼s Amaci?"}
+    C["IS IÃ‡IN"]
+    D["GEZI IÃ‡IN"]
 
-    C1["Baslangiç & Bitis Noktasi"]
-    C2{"Ücretli Yol Tercihi?"}
-    C3["ucretli_serbest: Ücretli + Ücretsiz Adaylar"]
-    C4["ucretsiz: Ücretli Kenarlar Dislanir"]
-    C5["Maliyet Minimizasyonu & Rota Seçimi"]
+    C1["BaslangiÃ§ & Bitis Noktasi"]
+    C2{"Ãœcretli Yol Tercihi?"}
+    C3["ucretli_serbest: Ãœcretli + Ãœcretsiz Adaylar"]
+    C4["ucretsiz: Ãœcretli Kenarlar Dislanir"]
+    C5["Maliyet Minimizasyonu & Rota SeÃ§imi"]
     C6["Lane Filtering Aktif"]
 
-    D1["Yüzey Tercihi"]
+    D1["YÃ¼zey Tercihi"]
     D2["Viraj Seviyesi"]
     D3["Manzara Tercihi"]
     D4["Keyif Rotasi"]
@@ -152,7 +196,7 @@ flowchart TD
     style D4 fill:#15803d,color:#fff
 ```
 
-#### Mod 1 — Is Için: Zaman Minimizasyonu
+#### Mod 1 â€” Is IÃ§in: Zaman Minimizasyonu
 
 Hedef fonksiyon:
 
@@ -160,48 +204,48 @@ $$
 \min_{P \in \mathcal{P}} \sum_{e \in P} T_{moto}(e)
 $$
 
-$\mathcal{P}$: Tüm mümkün rotalar kümesi, $T_{moto}(e)$: Kenar $e$ üzerinde motosiklet geçis süresi.
+$\mathcal{P}$: TÃ¼m mÃ¼mkÃ¼n rotalar kÃ¼mesi, $T_{moto}(e)$: Kenar $e$ Ã¼zerinde motosiklet geÃ§is sÃ¼resi.
 
-Ücretli/ücretsiz tercih için iki aday rota birlikte degerlendirilir:
+Ãœcretli/Ã¼cretsiz tercih iÃ§in iki aday rota birlikte degerlendirilir:
 
 $$
 P_{serbest}=\arg\min_{P}\sum_{e\in P}C_0(e),\qquad
 P_{ucretsiz}=\arg\min_{P:U(e)=0\ \forall e\in P}\sum_{e\in P}C_0(e)
 $$
 
-- `ucretli_serbest`: ücretli + ücretsiz adaylar birlikte optimize edilir.
-- `ucretsiz`: ücretli kenarlar hard constraint ile dislanir.
+- `ucretli_serbest`: Ã¼cretli + Ã¼cretsiz adaylar birlikte optimize edilir.
+- `ucretsiz`: Ã¼cretli kenarlar hard constraint ile dislanir.
 
-#### Mod 2 — Gezi Için: Keyif Maksimizasyonu
+#### Mod 2 â€” Gezi IÃ§in: Keyif Maksimizasyonu
 
-Gezi modunda her kenara ceza/ödül çarpanlari uygulanir:
+Gezi modunda her kenara ceza/Ã¶dÃ¼l Ã§arpanlari uygulanir:
 
-**Yüzey Tipi Çarpani:**
+**YÃ¼zey Tipi Ã‡arpani:**
 
 $$
-C_{yüzey}(e) = \begin{cases}
+C_{yÃ¼zey}(e) = \begin{cases}
 0.5 & \text{if } surface(e) = \text{tercih edilen} \\
-1.0 & \text{if } surface(e) = \text{nötr} \\
+1.0 & \text{if } surface(e) = \text{nÃ¶tr} \\
 50.0 & \text{if } surface(e) = \text{istenmeyen}
 \end{cases}
 $$
 
 **Viraj Skoru (Sinuosity Index):**
 
-Bir yol segmentinin ne kadar virajli oldugu su oranla ölçülür:
+Bir yol segmentinin ne kadar virajli oldugu su oranla Ã¶lÃ§Ã¼lÃ¼r:
 
 $$
-S(e) = \frac{L_{gerçek}(e)}{L_{kus\ uçusu}(e)}
+S(e) = \frac{L_{gerÃ§ek}(e)}{L_{kus\ uÃ§usu}(e)}
 $$
 
-- $S = 1.0$ ise yol düz, $S > 1.2$ ise virajli.
+- $S = 1.0$ ise yol dÃ¼z, $S > 1.2$ ise virajli.
 
-**Viraj Ödül Çarpani:**
+**Viraj Ã–dÃ¼l Ã‡arpani:**
 
 $$
 C_{viraj}(e) = \begin{cases}
-0.3 & \text{if } S(e) > 1.2 \text{ (virajli yol ödüllendirilir)} \\
-1.5 & \text{if } S(e) \approx 1.0 \text{ (düz yol cezalandirilir)}
+0.3 & \text{if } S(e) > 1.2 \text{ (virajli yol Ã¶dÃ¼llendirilir)} \\
+1.5 & \text{if } S(e) \approx 1.0 \text{ (dÃ¼z yol cezalandirilir)}
 \end{cases}
 $$
 
@@ -215,19 +259,19 @@ $$
 graph LR
     subgraph "Veri Katmani"
         OSM["OpenStreetMap<br/>Yol Agi"]
-        DEM["NASA SRTM DEM<br/>Yükseklik Verisi"]
+        DEM["NASA SRTM DEM<br/>YÃ¼kseklik Verisi"]
         IBB["IBB API<br/>Canli Trafik"]
     end
 
     subgraph "Islem Katmani"
         GRAF["Graf Olusturucu<br/>(osmnx + networkx)"]
-        SIM["Trafik Simülatörü<br/>(numpy + random)"]
+        SIM["Trafik SimÃ¼latÃ¶rÃ¼<br/>(numpy + random)"]
         COST["Maliyet Hesaplayici<br/>(Lane Filter + CC + Egim)"]
-        DIJKSTRA["Rota Çözücü<br/>(Dijkstra / A*)"]
+        DIJKSTRA["Rota Ã‡Ã¶zÃ¼cÃ¼<br/>(Dijkstra / A*)"]
     end
 
     subgraph "Sunum Katmani"
-        FOLIUM["Folium Harita<br/>(HTML Çiktisi)"]
+        FOLIUM["Folium Harita<br/>(HTML Ã‡iktisi)"]
         API["REST API<br/>(Flask / FastAPI)"]
         MOBILE["Mobil Uygulama<br/>(Flutter)"]
     end
@@ -256,16 +300,16 @@ $$
 W(e) = T_{moto}(e) \times C_{otoban}(e) \times C_{egim}(e) \times C_{mod}(e)
 $$
 
-| Bilesen | Formül | Açiklama |
+| Bilesen | FormÃ¼l | AÃ§iklama |
 |:---|:---:|:---|
 | $T_{moto}(e)$ | $\dfrac{d(e)}{V_{moto}(e) / 3.6}$ | Kenar uzunlugu / motosiklet hizi (saniye) |
 | $C_{otoban}(e)$ | $1.0$ veya $\infty$ | CC bazli yasal otoban kisitlamasi |
-| $C_{egim}(e)$ | $1.0 - 10.0$ | Yokus yukari egim ceza çarpani |
-| $C_{mod}(e)$ | $0.3 - 50.0$ | Gezi modunda yüzey + viraj çarpani |
+| $C_{egim}(e)$ | $1.0 - 10.0$ | Yokus yukari egim ceza Ã§arpani |
+| $C_{mod}(e)$ | $0.3 - 50.0$ | Gezi modunda yÃ¼zey + viraj Ã§arpani |
 
-### Gidis Yönündeki Serit Sayisi
+### Gidis YÃ¶nÃ¼ndeki Serit Sayisi
 
-OSM verisi genellikle toplam serit sayisini verir. Gidis yönündeki serit:
+OSM verisi genellikle toplam serit sayisini verir. Gidis yÃ¶nÃ¼ndeki serit:
 
 $$
 n_{serit}^{gidis} = \begin{cases}
@@ -286,9 +330,9 @@ sequenceDiagram
     participant API as Trafik API
 
     U->>APP: Kayit (CC bilgisi)
-    U->>APP: A noktasi, B noktasi, Mod seçimi
+    U->>APP: A noktasi, B noktasi, Mod seÃ§imi
     APP->>GRAF: Rota talebi
-    GRAF->>OSM: Bölge yol agi çek
+    GRAF->>OSM: BÃ¶lge yol agi Ã§ek
     OSM-->>GRAF: MultiDiGraph
     GRAF->>DEM: Rakim verisi oku (.tif)
     DEM-->>GRAF: Node elevations
@@ -297,7 +341,7 @@ sequenceDiagram
     API-->>GRAF: Araba hizlari
     GRAF->>GRAF: Lane filtering hiz hesabi
     GRAF->>GRAF: Maliyet fonksiyonu hesapla
-    GRAF->>GRAF: Dijkstra çalistir
+    GRAF->>GRAF: Dijkstra Ã§alistir
     GRAF-->>APP: Optimal rota + ETA
     APP-->>U: Harita + Uyarilar
 ```
@@ -309,19 +353,19 @@ sequenceDiagram
 | Veri | Kaynak | Format | Kullanim |
 |:---|:---|:---:|:---|
 | Yol agi (sokak grafi) | OpenStreetMap | `MultiDiGraph` | Topoloji, yol sinifi, serit, hiz limiti |
-| Yükseklik / egim | NASA SRTM DEM | `.tif` (GeoTIFF) | Rakim farkindan egim hesabi |
-| Anlik trafik | IBB API / Simülasyon | JSON | Araba hizlari (ileride gerçek veri) |
-| Yüzey, köprü, tünel | OSM etiketleri | Edge attributes | Gezi modu tercihleri, uyarilar |
+| YÃ¼kseklik / egim | NASA SRTM DEM | `.tif` (GeoTIFF) | Rakim farkindan egim hesabi |
+| Anlik trafik | IBB API / SimÃ¼lasyon | JSON | Araba hizlari (ileride gerÃ§ek veri) |
+| YÃ¼zey, kÃ¶prÃ¼, tÃ¼nel | OSM etiketleri | Edge attributes | Gezi modu tercihleri, uyarilar |
 
 ### Kullanilan OSM Etiketleri
 
-| Etiket | Örnek Deger | Algoritmadaki Rolü |
+| Etiket | Ã–rnek Deger | Algoritmadaki RolÃ¼ |
 |:---|:---|:---|
 | `highway` | `motorway`, `primary`, `residential` | Yol sinifi ? otoban kisitlamasi, varsayilan hizlar |
 | `lanes` | `2`, `4`, `6` | Lane filtering hiz hesabi |
-| `oneway` | `yes`, `no` | Gidis yönündeki serit sayisini bulma |
+| `oneway` | `yes`, `no` | Gidis yÃ¶nÃ¼ndeki serit sayisini bulma |
 | `maxspeed` | `50`, `120` | Akici trafikte referans hiz |
-| `surface` | `asphalt`, `gravel`, `dirt` | Gezi modu yüzey filtresi |
+| `surface` | `asphalt`, `gravel`, `dirt` | Gezi modu yÃ¼zey filtresi |
 | `bridge` / `tunnel` | `yes` | GPS kaybi, buzlanma uyarilari |
 | `incline` | `10%`, `up` | Egim dogrulamasi |
 
@@ -335,14 +379,14 @@ graph TD
         A[osmnx] --> B[networkx]
         C[rasterio] --> A
         B --> D[Dijkstra / A*]
-        E[numpy] --> F[Trafik Simülasyonu]
+        E[numpy] --> F[Trafik SimÃ¼lasyonu]
         G[pandas / geopandas] --> A
         D --> H[folium]
     end
 
-    subgraph "Mobil Frontend — Planlanan"
+    subgraph "Mobil Frontend â€” Planlanan"
         I[Flutter / React Native]
-        J[REST API — FastAPI]
+        J[REST API â€” FastAPI]
     end
 
     D --> J --> I
@@ -354,15 +398,15 @@ graph TD
     style I fill:#f59e0b,color:#000
 ```
 
-| Kütüphane | Versiyon | Amaç |
+| KÃ¼tÃ¼phane | Versiyon | AmaÃ§ |
 |:---|:---:|:---|
 | `osmnx` | 1.9+ | OSM'den yol agi indirme, DEM'den rakim ekleme |
 | `networkx` | 3.0+ | Graf islemleri, Dijkstra / A* algoritmalari |
 | `pandas` | 2.0+ | Veri temizligi, eksik deger doldurma |
-| `geopandas` | 0.14+ | Mekânsal veri islemleri |
-| `numpy` | 1.24+ | Istatistiksel simülasyon veri üretimi |
+| `geopandas` | 0.14+ | MekÃ¢nsal veri islemleri |
+| `numpy` | 1.24+ | Istatistiksel simÃ¼lasyon veri Ã¼retimi |
 | `rasterio` | 1.3+ | DEM GeoTIFF dosyasi okuma |
-| `folium` | 0.15+ | Etkilesimli Leaflet harita çiktisi |
+| `folium` | 0.15+ | Etkilesimli Leaflet harita Ã§iktisi |
 
 ---
 
@@ -379,37 +423,37 @@ pip install osmnx networkx pandas geopandas numpy folium rasterio
 
 ### DEM Verisi Indirme
 
-Istanbul bölgesi için 30m çözünürlüklü SRTM verisini asagidaki kaynaklardan `.tif` formatinda indirin:
+Istanbul bÃ¶lgesi iÃ§in 30m Ã§Ã¶zÃ¼nÃ¼rlÃ¼klÃ¼ SRTM verisini asagidaki kaynaklardan `.tif` formatinda indirin:
 
 - [USGS EarthExplorer](https://earthexplorer.usgs.gov/)
 - [Copernicus DEM](https://spacedata.copernicus.eu/)
 - [CGIAR-CSI SRTM](https://srtm.csi.cgiar.org/)
 
-Indirilen dosyayi proje kök dizinine `istanbul_dem.tif` olarak kaydedin.
+Indirilen dosyayi proje kÃ¶k dizinine `istanbul_dem.tif` olarak kaydedin.
 
 ---
 
-## Hizli Baslangiç
+## Hizli BaslangiÃ§
 
 ```python
 from motomap import motomap_graf_olustur, maliyetleri_hesapla_ve_grafa_ekle, rota_ciz
 
-# 1. Graf olustur (pilot bölge: Kadiköy)
-G = motomap_graf_olustur("Kadiköy, Istanbul, Turkey", "istanbul_dem.tif")
+# 1. Graf olustur (pilot bÃ¶lge: KadikÃ¶y)
+G = motomap_graf_olustur("KadikÃ¶y, Istanbul, Turkey", "istanbul_dem.tif")
 
 # 2. Maliyetleri hesapla (50cc motor, is modu)
 G = maliyetleri_hesapla_ve_grafa_ekle(G, motor_cc=50, surus_amaci="is_icin")
 
-# 3. Rota bul ve görsellestir
+# 3. Rota bul ve gÃ¶rsellestir
 rota_ciz(G, baslangic_node, bitis_node)
-# Çikti: motomap_test_rotasi.html
+# Ã‡ikti: motomap_test_rotasi.html
 ```
 
 ---
 
-## DEM/API Çiktilari
+## DEM/API Ã‡iktilari
 
-Asagidaki artefaktlar OSM + Elevation API çagrilari ile üretilmistir:
+Asagidaki artefaktlar OSM + Elevation API Ã§agrilari ile Ã¼retilmistir:
 
 - `outputs/dem_api/moda_kadikoy_dem_api_map.npz`
 - `outputs/dem_api/moda_kadikoy_dem_api_map.pdf`
@@ -421,11 +465,11 @@ Asagidaki artefaktlar OSM + Elevation API çagrilari ile üretilmistir:
 
 ![DEM API Science Map](outputs/dem_api/moda_kadikoy_dem_api_map.svg)
 
-### Yükselti 3D Plot (Python)
+### YÃ¼kselti 3D Plot (Python)
 
 ![Elevation 3D Plot](outputs/dem_api/moda_kadikoy_elevation_3d.png)
 
-Üretim komutlari:
+Ãœretim komutlari:
 
 ```bash
 python -m scripts.dem_api_map_export --place "Moda, Kadikoy, Istanbul, Turkey" --output-dir outputs/dem_api --basename moda_kadikoy_dem_api_map
@@ -444,81 +488,81 @@ gantt
     dateFormat  YYYY-MM-DD
     axisFormat  %d %b
 
-    section Faz 1 — Altyapi
+    section Faz 1 â€” Altyapi
     Proje iskeleti ve bagimliliklar         :f1a, 2026-03-01, 3d
-    OSM veri çekme modülü                   :f1b, after f1a, 5d
+    OSM veri Ã§ekme modÃ¼lÃ¼                   :f1b, after f1a, 5d
     DEM entegrasyonu ve egim hesaplama      :f1c, after f1a, 5d
     Veri temizleme fonksiyonlari             :f1d, after f1b, 3d
 
-    section Faz 2 — Çekirdek Algoritma
+    section Faz 2 â€” Ã‡ekirdek Algoritma
     Lane filtering hiz fonksiyonu           :f2a, after f1d, 4d
     CC bazli kisitlama sistemi              :f2b, after f1d, 3d
-    Egim ceza çarpani                       :f2c, after f1c, 3d
+    Egim ceza Ã§arpani                       :f2c, after f1c, 3d
     Maliyet fonksiyonu birlestirme          :f2d, after f2a, 4d
-    Dijkstra rota çözücü                    :f2e, after f2d, 3d
+    Dijkstra rota Ã§Ã¶zÃ¼cÃ¼                    :f2e, after f2d, 3d
 
-    section Faz 3 — Gezi Modu
-    Yüzey tipi filtresi                     :f3a, after f2e, 3d
+    section Faz 3 â€” Gezi Modu
+    YÃ¼zey tipi filtresi                     :f3a, after f2e, 3d
     Sinuosity indeksi hesaplama             :f3b, after f2e, 4d
     Keyif maliyet fonksiyonu                :f3c, after f3a, 3d
 
-    section Faz 4 — Simülasyon ve Test
-    Akilli trafik simülatörü               :f4a, after f2e, 5d
-    Folium görsellestirme                   :f4b, after f2e, 4d
-    Uçtan uca test senaryolari              :f4c, after f4a, 5d
+    section Faz 4 â€” SimÃ¼lasyon ve Test
+    Akilli trafik simÃ¼latÃ¶rÃ¼               :f4a, after f2e, 5d
+    Folium gÃ¶rsellestirme                   :f4b, after f2e, 4d
+    UÃ§tan uca test senaryolari              :f4c, after f4a, 5d
 
-    section Faz 5 — Üretime Hazirlik
+    section Faz 5 â€” Ãœretime Hazirlik
     REST API sunucusu                       :f5a, after f4c, 7d
     IBB API entegrasyonu                    :f5b, after f5a, 7d
     Mobil uygulama MVP                      :f5c, after f5a, 21d
 ```
 
-### Detayli Faz Açiklamalari
+### Detayli Faz AÃ§iklamalari
 
-#### Faz 1 — Veri Altyapisi
+#### Faz 1 â€” Veri Altyapisi
 
-| Görev | Girdi | Çikti | Sorumlu |
+| GÃ¶rev | Girdi | Ã‡ikti | Sorumlu |
 |:---|:---|:---|:---:|
-| Proje iskeleti olustur | — | `motomap/` paket yapisi, `requirements.txt` | — |
-| `data_loader.py` : OSM veri çekme | Bölge adi (str) | `NetworkX MultiDiGraph` | — |
-| `elevation.py` : DEM entegrasyonu | `.tif` dosya yolu | Graf + `elevation`, `grade`, `grade_abs` | — |
-| `data_cleaner.py` : Eksik veri doldurma | Ham graf | Temiz graf (lanes, maxspeed, surface) | — |
+| Proje iskeleti olustur | â€” | `motomap/` paket yapisi, `requirements.txt` | â€” |
+| `data_loader.py` : OSM veri Ã§ekme | BÃ¶lge adi (str) | `NetworkX MultiDiGraph` | â€” |
+| `elevation.py` : DEM entegrasyonu | `.tif` dosya yolu | Graf + `elevation`, `grade`, `grade_abs` | â€” |
+| `data_cleaner.py` : Eksik veri doldurma | Ham graf | Temiz graf (lanes, maxspeed, surface) | â€” |
 
-#### Faz 2 — Çekirdek Algoritma
+#### Faz 2 â€” Ã‡ekirdek Algoritma
 
-| Görev | Girdi | Çikti | Formül |
+| GÃ¶rev | Girdi | Ã‡ikti | FormÃ¼l |
 |:---|:---|:---|:---:|
 | `lane_filter.py` : Hiz hesabi | $V_{araba}$, $n_{serit}$, $V_{max}$ | $V_{moto}$ | Serit bazli fonksiyon |
 | `cc_constraint.py` : Otoban engeli | CC, yol tipi | $C_{otoban}$ | $\infty$ veya $1.0$ |
-| `grade_penalty.py` : Egim cezasi | $\alpha$, CC | $C_{egim}$ | Derecelendirilmis çarpan |
-| `cost_engine.py` : Bilesik maliyet | Tüm çarpanlar | $W(e)$ | $T \times C_o \times C_e \times C_m$ |
-| `router.py` : Rota çözücü | Graf, A, B, weight | Node listesi + ETA | Dijkstra |
+| `grade_penalty.py` : Egim cezasi | $\alpha$, CC | $C_{egim}$ | Derecelendirilmis Ã§arpan |
+| `cost_engine.py` : Bilesik maliyet | TÃ¼m Ã§arpanlar | $W(e)$ | $T \times C_o \times C_e \times C_m$ |
+| `router.py` : Rota Ã§Ã¶zÃ¼cÃ¼ | Graf, A, B, weight | Node listesi + ETA | Dijkstra |
 
-#### Faz 3 — Gezi Modu
+#### Faz 3 â€” Gezi Modu
 
-| Görev | Girdi | Çikti | Formül |
+| GÃ¶rev | Girdi | Ã‡ikti | FormÃ¼l |
 |:---|:---|:---|:---:|
-| `surface_filter.py` | Tercih, `surface` tag | $C_{yüzey}$ | Ceza / nötr / ödül |
-| `sinuosity.py` | Edge geometri | $S(e)$ | $L_{gerçek} / L_{kus\ uçusu}$ |
-| `joy_cost.py` | Tüm tercih çarpanlari | `keyif_maliyeti` | $d \times C_y \times C_v$ |
+| `surface_filter.py` | Tercih, `surface` tag | $C_{yÃ¼zey}$ | Ceza / nÃ¶tr / Ã¶dÃ¼l |
+| `sinuosity.py` | Edge geometri | $S(e)$ | $L_{gerÃ§ek} / L_{kus\ uÃ§usu}$ |
+| `joy_cost.py` | TÃ¼m tercih Ã§arpanlari | `keyif_maliyeti` | $d \times C_y \times C_v$ |
 
-#### Faz 4 — Simülasyon ve Test
+#### Faz 4 â€” SimÃ¼lasyon ve Test
 
-| Görev | Girdi | Çikti |
+| GÃ¶rev | Girdi | Ã‡ikti |
 |:---|:---|:---|
-| `traffic_sim.py` : Trafik üreteci | Yol tipi, saat dilimi | Simüle araba hizlari |
+| `traffic_sim.py` : Trafik Ã¼reteci | Yol tipi, saat dilimi | SimÃ¼le araba hizlari |
 | `visualizer.py` : Folium harita | Rota node listesi | `.html` etkilesimli harita |
-| `test_scenarios.py` : E2E testler | A/B noktalari, CC, mod | Beklenen vs gerçek rota |
+| `test_scenarios.py` : E2E testler | A/B noktalari, CC, mod | Beklenen vs gerÃ§ek rota |
 
-#### Faz 5 — Üretime Hazirlik
+#### Faz 5 â€” Ãœretime Hazirlik
 
-| Görev | Açiklama |
+| GÃ¶rev | AÃ§iklama |
 |:---|:---|
 | REST API (`FastAPI`) | Mobil uygulamanin rota taleplerini alacak backend sunucu |
-| IBB API entegrasyonu | Gerçek zamanli trafik verisini simülasyon yerine baglama |
-| Mobil MVP (`Flutter`) | Kayit ekrani (CC girisi), mod seçimi, harita görünümü |
+| IBB API entegrasyonu | GerÃ§ek zamanli trafik verisini simÃ¼lasyon yerine baglama |
+| Mobil MVP (`Flutter`) | Kayit ekrani (CC girisi), mod seÃ§imi, harita gÃ¶rÃ¼nÃ¼mÃ¼ |
 
-### Modül Bagimliliklari
+### ModÃ¼l Bagimliliklari
 
 ```mermaid
 graph TD
@@ -549,39 +593,49 @@ graph TD
 ## Proje Durumu
 
 - [x] Algoritma tasarimi ve matematiksel modelleme
-- [x] README ve dokümantasyon
-- [ ] Proje dosya yapisi ve paketleme
-- [ ] OSM veri çekme ve graf olusturma
-- [ ] DEM entegrasyonu ve egim hesaplama
-- [ ] Veri temizleme (lanes, maxspeed, surface)
-- [ ] Lane filtering hiz fonksiyonu
-- [ ] CC bazli kisitlama sistemi
-- [ ] Egim ceza çarpani
-- [ ] Bilesik maliyet fonksiyonu
-- [ ] Dijkstra rota çözücü
-- [ ] Gezi modu: yüzey filtresi
-- [ ] Gezi modu: sinuosity indeksi
-- [ ] Akilli trafik simülasyonu
-- [ ] Folium görsellestirme
-- [ ] Uçtan uca test senaryolari
-- [ ] REST API sunucusu (FastAPI)
-- [ ] IBB API entegrasyonu
-- [ ] Mobil uygulama MVP (Flutter)
+- [x] README ve dokumantasyon
+- [x] OSM tabanli routing cekirdegi
+- [x] DEM / egim entegrasyonu
+- [x] Veri temizleme: lanes, maxspeed, surface, lanes_forward
+- [x] BPR tabanli hiz modeli
+- [x] Canli trafik destekli edge speed blending
+- [x] Baglama duyarli lane filtering
+- [x] CC bazli kisitlama sistemi
+- [x] Mod bazli rota maliyetleri
+- [x] Dijkstra tabanli rota cozucu
+- [x] Weather-aware route cost
+- [x] Release notes ve research note
+- [ ] Provider-specific trafik adapterlari
+- [ ] Trace-based calibration loop
+- [ ] Production API rollout
+- [ ] Mobil uygulama MVP
 
 ---
 
-## Algoritma Parametreleri Özet Tablosu
+## Algoritma Parametreleri Ã–zet Tablosu
 
 | Parametre | Sembol | Veri Kaynagi | Algoritmaya Etkisi |
 |:---|:---:|:---:|:---|
 | Motosiklet Hacmi | $CC$ | Kullanici | $\leq 50$: otoban $= \infty$, egim cezalari aktif |
-| Serit Sayisi | $n_{serit}$ | OSM `lanes` | Arttikça $V_{moto}$ yükselir |
+| Serit Sayisi | $n_{serit}$ | OSM `lanes` | ArttikÃ§a $V_{moto}$ yÃ¼kselir |
 | Yol Egimi | $\alpha$ | DEM `.tif` | $> 5\%$: maliyet $1.5\times - 10\times$ artar |
-| Yüzey Tipi | $surface$ | OSM `surface` | Gezi modunda istenmeyen $= 50\times$ ceza |
-| Sürüs Amaci | $mod$ | Kullanici | Is: $\min T$, Gezi: $\min (d \times C_y \times C_v)$ |
-| Anlik Trafik | $V_{araba}$ | IBB / Sim | Lane filtering tetikleyicisi |
+| YÃ¼zey Tipi | $surface$ | OSM `surface` | Free-flow speed ve gezi tercihlerini etkiler |
+| SÃ¼rÃ¼s Amaci | $mod$ | Kullanici | Is: $\min T$, Gezi: $\min (d \times C_y \times C_v)$ |
+| V/C Orani | $\frac{V}{C}$ | feed veya hacim/kapasite | BPR sikisiklik tepkisini belirler |
+| Canli Hiz | $V_{live}$ | trafik saglayicisi | BPR sonucuyla birlestirilir |
+| Guven Katsayisi | $\lambda$ | trafik saglayicisi | canli hizi ne kadar dinleyecegimizi belirler |
+| Hava Guvenligi | $S_e$ | weather assessment | edge hizi ve route cost'u dusurur |
+| Incident Siddeti | $I_e$ | trafik/olay feed'i | mod bazli cezayi artirir |
 | Hiz Siniri | $V_{max}$ | OSM `maxspeed` | Akici trafikte tavan hiz |
-| Tek Yön | $oneway$ | OSM `oneway` | $n_{serit}^{gidis}$ hesabi |
+| Tek YÃ¶n | $oneway$ | OSM `oneway` | $n_{serit}^{gidis}$ hesabi |
+
+---
+
+## Surum Notlari
+
+- Guncel release: `v0.6.0`
+- Bu surumde README, website release note ve GitHub release body canli trafik destekli routing modeline gore guncellendi.
+- Ana yenilikler: live traffic-aware routing, directional `V/C`, speed blending, weather ve incident-aware cost, context-aware lane filtering.
 
 ---
 
@@ -591,13 +645,13 @@ Bu proje [MIT License](LICENSE) altinda lisanslanmistir.
 
 ## Yazar
 
-**Ali Özuysal**
+**Ali Ã–zuysal**
 **Muhammet Yagcioglu**
 
 ---
 
 <div align="center">
 
-*MOTOMAP — Çünkü motosikletçilerin rotasi arabalara göre çizilemez.*
+*MOTOMAP â€” Ã‡Ã¼nkÃ¼ motosikletÃ§ilerin rotasi arabalara gÃ¶re Ã§izilemez.*
 
 </div>

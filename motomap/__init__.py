@@ -5,6 +5,7 @@ from motomap.algorithm import (
     EXCLUDED_HIGHWAY_TYPES,
     RoutingAlgorithmProfile,
     add_travel_time_to_graph,
+    apply_weather_assessment_to_graph,
     filter_motorcycle_edges,
     ucret_opsiyonlu_rota_hesapla,
 )
@@ -39,6 +40,7 @@ __all__ = [
     "motomap_graf_olustur",
     "ucret_opsiyonlu_rota_hesapla",
     "add_travel_time_to_graph",
+    "apply_weather_assessment_to_graph",
     "add_curve_and_risk_metrics",
     "analyze_linestring_curvature",
     "filter_motorcycle_edges",

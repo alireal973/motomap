@@ -318,12 +318,177 @@
     <p class="page-sub">Algorithm changes, formula derivations, and version history.</p>
   </div>
 
+  <!-- ======== v0.6.0 ======== -->
+  <article class="version reveal" id="v0.6.0">
+    <div class="version-header">
+      <span class="version-tag">v0.6.0</span>
+      <span class="version-date">2026-04-12</span>
+      <span class="badge badge-latest">Latest</span>
+    </div>
+
+    <p class="version-summary">
+      MotoMap routing now accepts <strong>live traffic speed</strong>,
+      <strong>directional traffic volume</strong>,
+      <strong>provider speed categories</strong>,
+      and <strong>weather / incident safety context</strong>.
+      The routing core blends observed speed with BPR, activates motorcycle
+      filtering only in realistic low-speed congestion, and automatically
+      invalidates cached travel times when live edge traffic changes.
+    </p>
+
+    <div class="cg cg-new">
+      <div class="cg-title"><i data-lucide="sparkles" class="cg-icon" style="color:var(--green)"></i> New Features</div>
+      <ul class="cl">
+        <li>
+          <strong>Directional Capacity from Live Flow</strong> &mdash; When
+          <code>traffic_volume_vph</code> is present, MotoMap now computes
+          edge-level congestion from forward lanes and practical per-lane capacity.
+          <div class="formula">
+            <div class="formula-label">Directional V/C Ratio</div>
+            $$ \left(\frac{V}{C}\right)_e = \frac{Q_e}{n_{fwd,e} \cdot c_{lane,e}} $$
+            <p class="formula-note">
+              This upgrades <code>ROAD_CAPACITY_PER_LANE</code> from a static
+              reference table into an active routing input.
+            </p>
+          </div>
+        </li>
+        <li>
+          <strong>Live Speed Blending</strong> &mdash; The BPR estimate is now
+          blended with provider speed feeds such as Google polyline traffic,
+          HERE flow speed, or TomTom flow tiles.
+          <div class="formula">
+            <div class="formula-label">Traffic-Aware Car Speed</div>
+            $$ V^{*}_{car,e} = (1-\lambda_e)\,V^{BPR}_{car,e} + \lambda_e\,V^{live}_{e} $$
+            <p class="formula-note">
+              $\lambda_e$ is the per-edge live traffic confidence. This keeps
+              the model stable under noisy feeds while remaining responsive.
+            </p>
+          </div>
+        </li>
+        <li>
+          <strong>Context-Aware Motorcycle Filtering</strong> &mdash; Lane
+          filtering is no longer treated as an unrestricted speed bonus. It is
+          now bounded by congestion state, weather, tunnel context, night mode,
+          heavy-vehicle share, and lane width.
+          <div class="formula">
+            <div class="formula-label">Bounded Filtering Envelope</div>
+            $$ V_{moto,e} =
+            \min\!\left(
+            V^{*}_{car,e} + \Delta_{lane,e}\,m_{weather,e}\,m_{context,e},
+            V_{filter,max}
+            \right) $$
+            <p class="formula-note">
+              Tunnels fully suppress filtering. Narrow lanes and heavy vehicles
+              reduce the benefit rather than removing it abruptly.
+            </p>
+          </div>
+        </li>
+        <li>
+          <strong>Weather-Aware Route Cost</strong> &mdash; Weather and incident
+          severity now affect route weights, not just UI analysis.
+          <div class="formula">
+            <div class="formula-label">Mode Cost with Safety and Incidents</div>
+            $$ C_{mode,e} = T_e \cdot \left[1 + \omega_{mode}(1-S_e) + \phi_{mode} I_e\right] $$
+            <p class="formula-note">
+              <code>guvenli</code> uses the strongest $\omega_{mode}$ and
+              $\phi_{mode}$, while <code>viraj_keyfi</code> stays lighter.
+            </p>
+          </div>
+        </li>
+        <li>
+          <strong>Graph-Wide Weather Projection Helper</strong> &mdash;
+          <code>apply_weather_assessment_to_graph()</code> now maps route-level
+          motorcycle weather assessments directly onto every edge before routing.
+        </li>
+      </ul>
+    </div>
+
+    <div class="cg cg-changed">
+      <div class="cg-title"><i data-lucide="refresh-cw" class="cg-icon" style="color:var(--orange)"></i> Changed</div>
+      <ul class="cl">
+        <li>
+          <strong><code>_effective_speed_kmh()</code></strong> now resolves
+          traffic state from <code>vc_ratio</code>, live directional flow,
+          provider speed categories (<code>NORMAL</code>, <code>SLOW</code>,
+          <code>TRAFFIC_JAM</code>), and live speed confidence.
+        </li>
+        <li>
+          <strong><code>RoutingAlgorithmProfile</code></strong> gained live-traffic
+          confidence defaults, a safe filtering envelope, and weather / incident
+          penalty weights for each riding mode.
+        </li>
+        <li>
+          <strong><code>RuntimeCalibration</code></strong> now supports
+          weather-safety and lane-splitting overrides via environment variables.
+        </li>
+        <li>
+          <strong><code>_graph_cache_token()</code></strong> now includes live
+          traffic, weather, and filtering context fields, so cache invalidation
+          is automatic when edge traffic changes.
+        </li>
+      </ul>
+    </div>
+
+    <div class="cg cg-fixed">
+      <div class="cg-title"><i data-lucide="wrench" class="cg-icon" style="color:var(--accent)"></i> Fixed</div>
+      <ul class="cl">
+        <li>
+          <strong>Traffic-ready but partially manual cache reset</strong> &mdash;
+          live traffic changes now invalidate cached travel times automatically.
+        </li>
+        <li>
+          <strong>Lane filtering in unrealistic contexts</strong> &mdash;
+          tunnel and unsafe low-clearance contexts no longer receive the same
+          filtering benefit as open mixed traffic.
+        </li>
+        <li>
+          <strong>Capacity table was defined but not active</strong> &mdash;
+          <code>ROAD_CAPACITY_PER_LANE</code> now participates in live
+          congestion estimation when volume is available.
+        </li>
+      </ul>
+    </div>
+
+    <div class="cg cg-refs">
+      <div class="cg-title"><i data-lucide="book-open" class="cg-icon" style="color:var(--purple)"></i> Research References</div>
+      <ul class="cl">
+        <li>
+          <strong>Google Routes Preferred</strong> &mdash;
+          <a href="https://developers.google.com/maps/documentation/routes_preferred/traffic_on_polylines" target="_blank" rel="noopener noreferrer">traffic speed reading intervals on polylines</a>.
+        </li>
+        <li>
+          <strong>HERE Traffic API v7</strong> &mdash;
+          <a href="https://docs.here.com/here-traffic-api" target="_blank" rel="noopener noreferrer">real-time flow, current speed, and jam information</a>.
+        </li>
+        <li>
+          <strong>TomTom Orbis Traffic Flow</strong> &mdash;
+          <a href="https://developer.tomtom.com/traffic-api/documentation/tomtom-orbis-maps/traffic-flow/vector-flow-tiles" target="_blank" rel="noopener noreferrer">current speed and free-flow delta per segment</a>.
+        </li>
+        <li>
+          <strong>FHWA DTA Guidebook</strong> &mdash;
+          <a href="https://ops.fhwa.dot.gov/publications/fhwahop13015/sec6.htm" target="_blank" rel="noopener noreferrer">network-sensitive dynamic traffic assignment guidance</a>.
+        </li>
+        <li>
+          <strong>SUMO Sublane / mixed traffic practice</strong> &mdash;
+          <a href="https://sumo.dlr.de/daily/userdoc/Simulation/" target="_blank" rel="noopener noreferrer">simulation support for lateral mixed-traffic behavior</a>.
+        </li>
+        <li>
+          <strong>Motorcycle lane filtering study</strong> &mdash;
+          <a href="https://trid.trb.org/View/2015883" target="_blank" rel="noopener noreferrer">Promraksa et al. (2022) on signalized urban intersections</a>.
+        </li>
+        <li>
+          <strong>MotoMap research note</strong> &mdash;
+          <a href="research/2026-04-12-live-traffic-motorcycle-routing.md">implementation rationale, formulas, and source map</a>.
+        </li>
+      </ul>
+    </div>
+  </article>
+
   <!-- ======== v0.5.0 ======== -->
   <article class="version reveal" id="v0.5.0">
     <div class="version-header">
       <span class="version-tag">v0.5.0</span>
       <span class="version-date">2026-04-11</span>
-      <span class="badge badge-latest">Latest</span>
       <span class="badge badge-breaking">Breaking</span>
     </div>
 

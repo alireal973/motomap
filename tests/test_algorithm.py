@@ -6,9 +6,11 @@ import pytest
 from motomap.algorithm import (
     FERRY_CUSTOM_FILTER,
     TRAVEL_TIME_ATTR,
+    apply_weather_assessment_to_graph,
     build_mode_specific_cost,
     build_route_search_index,
     compute_edge_travel_time,
+    ensure_travel_time_to_graph,
     fill_edge_defaults,
     mode_weight_attr,
     runtime_calibration_from_env,
@@ -16,6 +18,7 @@ from motomap.algorithm import (
     summarize_route,
     ucret_opsiyonlu_rota_hesapla,
 )
+from motomap.weather.models import RoadConditionAssessment, RoadSurfaceCondition
 
 HIGHWAY_TYPES = (
     "primary",
@@ -273,3 +276,92 @@ def test_randomized_shortest_path_matches_networkx(case_id):
         assert summary["toplam_maliyet_s"] == pytest.approx(actual_cost)
         if not allow_toll:
             assert summary["ucretli_yol_iceriyor"] is False
+
+
+def test_compute_edge_travel_time_blends_live_volume_and_speed_feed():
+    baseline_edge = {
+        "highway": "primary",
+        "length": 1_000.0,
+        "maxspeed": 80,
+        "lanes": 4,
+        "lanes_forward": 2,
+    }
+    live_edge = {
+        **baseline_edge,
+        "traffic_volume_vph": 1_800.0,
+        "traffic_speed_kmh": 18.0,
+        "traffic_confidence": 1.0,
+    }
+
+    baseline = compute_edge_travel_time(baseline_edge)
+    live = compute_edge_travel_time(live_edge)
+
+    assert live > baseline
+
+
+def test_tunnel_edges_suppress_lane_filtering_bonus():
+    open_edge = {
+        "highway": "primary",
+        "length": 1_000.0,
+        "maxspeed": 80,
+        "lanes": 4,
+        "lanes_forward": 2,
+        "vc_ratio": 1.0,
+        "traffic_speed_kmh": 10.0,
+        "traffic_confidence": 1.0,
+    }
+    tunnel_edge = {**open_edge, "tunnel": "yes"}
+
+    open_time = compute_edge_travel_time(open_edge)
+    tunnel_time = compute_edge_travel_time(tunnel_edge)
+
+    assert tunnel_time > open_time
+
+
+def test_apply_weather_assessment_to_graph_penalizes_open_highways():
+    graph = nx.MultiDiGraph()
+    graph.add_edge(1, 2, 0, highway="motorway", travel_time_s=100.0, length=1000.0)
+    graph.add_edge(1, 3, 0, highway="secondary", travel_time_s=100.0, length=1000.0)
+
+    assessment = RoadConditionAssessment(
+        surface_condition=RoadSurfaceCondition.WET,
+        grip_factor=0.7,
+        visibility_factor=0.9,
+        wind_risk_factor=0.4,
+        overall_safety_score=0.55,
+        lane_splitting_modifier=0.45,
+        warnings=["wind"],
+    )
+    apply_weather_assessment_to_graph(graph, assessment)
+    weight_attr = build_mode_specific_cost(
+        graph,
+        surus_modu="standart",
+        base_weight=TRAVEL_TIME_ATTR,
+    )
+
+    assert graph.edges[1, 2, 0]["weather_overall_safety"] < graph.edges[1, 3, 0]["weather_overall_safety"]
+    assert graph.edges[1, 2, 0][weight_attr] > graph.edges[1, 3, 0][weight_attr]
+
+
+def test_live_traffic_changes_invalidate_cached_travel_time():
+    graph = nx.MultiDiGraph()
+    graph.add_edge(
+        1,
+        2,
+        0,
+        highway="primary",
+        length=1_000.0,
+        maxspeed=80,
+        lanes=4,
+        lanes_forward=2,
+    )
+
+    ensure_travel_time_to_graph(graph)
+    baseline = graph.edges[1, 2, 0][TRAVEL_TIME_ATTR]
+
+    graph.edges[1, 2, 0]["traffic_speed_kmh"] = 12.0
+    graph.edges[1, 2, 0]["traffic_confidence"] = 1.0
+    ensure_travel_time_to_graph(graph)
+    updated = graph.edges[1, 2, 0][TRAVEL_TIME_ATTR]
+
+    assert updated > baseline

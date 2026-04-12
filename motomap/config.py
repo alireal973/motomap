@@ -224,3 +224,24 @@ LANE_FILTER_SPEED_BONUS: dict[int, float] = {
 }
 LANE_FILTER_VC_THRESHOLD = 0.60  # V/C above which lane filtering activates
 LANE_FILTER_MIN_SPEED_KMH = 15.0  # minimum motorcycle speed even in gridlock
+
+# Practical lane-filtering envelope used by the real-time model.  Recent
+# mixed-traffic and safety literature supports treating lane filtering as a
+# low-speed congestion maneuver rather than a general cruising-speed bonus.
+LIVE_TRAFFIC_DEFAULT_CONFIDENCE = 0.65
+LANE_FILTER_MAX_CAR_SPEED_KMH = 40.0
+LANE_FILTER_MAX_EFFECTIVE_SPEED_KMH = 42.0
+LANE_FILTER_TUNNEL_MODIFIER = 0.0
+LANE_FILTER_NIGHT_MODIFIER = 0.75
+LANE_FILTER_HEAVY_VEHICLE_PENALTY = 0.45
+LANE_FILTER_NARROW_LANE_WIDTH_M = 3.15
+LANE_FILTER_NARROW_LANE_MODIFIER = 0.72
+
+# Weather and incident penalties used by mode-specific routing costs.
+WEATHER_SPEED_FLOOR_FACTOR = 0.70
+STANDART_WEATHER_PENALTY_WEIGHT = 0.30
+VIRAJ_WEATHER_PENALTY_WEIGHT = 0.20
+GUVENLI_WEATHER_PENALTY_WEIGHT = 0.75
+STANDART_INCIDENT_PENALTY_WEIGHT = 0.35
+VIRAJ_INCIDENT_PENALTY_WEIGHT = 0.20
+GUVENLI_INCIDENT_PENALTY_WEIGHT = 0.85
