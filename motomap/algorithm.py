@@ -17,14 +17,29 @@ from motomap.config import (
     DEFAULT_MAXSPEED,
     DEFAULT_SURFACE,
     FREE_FLOW_SPEED_FACTOR,
+    GUVENLI_INCIDENT_PENALTY_WEIGHT,
+    GUVENLI_WEATHER_PENALTY_WEIGHT,
     INTERSECTION_DELAY_S,
+    LANE_FILTER_HEAVY_VEHICLE_PENALTY,
     LANE_FILTER_MIN_SPEED_KMH,
+    LANE_FILTER_MAX_CAR_SPEED_KMH,
+    LANE_FILTER_MAX_EFFECTIVE_SPEED_KMH,
+    LANE_FILTER_NARROW_LANE_MODIFIER,
+    LANE_FILTER_NARROW_LANE_WIDTH_M,
+    LANE_FILTER_NIGHT_MODIFIER,
     LANE_FILTER_SPEED_BONUS,
+    LANE_FILTER_TUNNEL_MODIFIER,
     LANE_FILTER_VC_THRESHOLD,
+    LIVE_TRAFFIC_DEFAULT_CONFIDENCE,
     MOTORWAY_MIN_CC,
     PEAK_HOUR_VC_RATIO,
     ROAD_CAPACITY_PER_LANE,
+    STANDART_INCIDENT_PENALTY_WEIGHT,
+    STANDART_WEATHER_PENALTY_WEIGHT,
     SURFACE_SPEED_FACTOR,
+    VIRAJ_INCIDENT_PENALTY_WEIGHT,
+    VIRAJ_WEATHER_PENALTY_WEIGHT,
+    WEATHER_SPEED_FLOOR_FACTOR,
 )
 
 TRAVEL_TIME_ATTR = "travel_time_s"
@@ -121,6 +136,8 @@ class RuntimeCalibration:
     segment_delay_s: float
     ferry_boarding_delay_s: float
     vc_ratio_override: float | None = None
+    weather_safety_override: float | None = None
+    lane_splitting_modifier_override: float | None = None
 
 
 @dataclass(frozen=True)
@@ -186,6 +203,21 @@ class RoutingAlgorithmProfile:
     )
     lane_filter_vc_threshold: float = LANE_FILTER_VC_THRESHOLD
     lane_filter_min_speed_kmh: float = LANE_FILTER_MIN_SPEED_KMH
+    default_live_traffic_confidence: float = LIVE_TRAFFIC_DEFAULT_CONFIDENCE
+    lane_filter_max_car_speed_kmh: float = LANE_FILTER_MAX_CAR_SPEED_KMH
+    lane_filter_max_effective_speed_kmh: float = LANE_FILTER_MAX_EFFECTIVE_SPEED_KMH
+    lane_filter_tunnel_modifier: float = LANE_FILTER_TUNNEL_MODIFIER
+    lane_filter_night_modifier: float = LANE_FILTER_NIGHT_MODIFIER
+    lane_filter_heavy_vehicle_penalty: float = LANE_FILTER_HEAVY_VEHICLE_PENALTY
+    lane_filter_narrow_lane_width_m: float = LANE_FILTER_NARROW_LANE_WIDTH_M
+    lane_filter_narrow_lane_modifier: float = LANE_FILTER_NARROW_LANE_MODIFIER
+    weather_speed_floor_factor: float = WEATHER_SPEED_FLOOR_FACTOR
+    standart_weather_penalty_weight: float = STANDART_WEATHER_PENALTY_WEIGHT
+    viraj_weather_penalty_weight: float = VIRAJ_WEATHER_PENALTY_WEIGHT
+    guvenli_weather_penalty_weight: float = GUVENLI_WEATHER_PENALTY_WEIGHT
+    standart_incident_penalty_weight: float = STANDART_INCIDENT_PENALTY_WEIGHT
+    viraj_incident_penalty_weight: float = VIRAJ_INCIDENT_PENALTY_WEIGHT
+    guvenli_incident_penalty_weight: float = GUVENLI_INCIDENT_PENALTY_WEIGHT
     excluded_highway_types: frozenset[str] = field(
         default_factory=lambda: EXCLUDED_HIGHWAY_TYPES
     )
@@ -243,6 +275,12 @@ def safe_float(value, default: float = 0.0) -> float:
         return default
 
 
+def clamp(value: float, lower: float, upper: float) -> float:
+    """Clamp ``value`` into the inclusive ``[lower, upper]`` interval."""
+
+    return max(lower, min(upper, float(value)))
+
+
 def parse_int(value, default: int) -> int:
     """Convert loose OSM-style values to ``int`` with list-aware fallbacks."""
 
@@ -258,6 +296,20 @@ def parse_int(value, default: int) -> int:
     if isinstance(value, list) and value:
         return parse_int(value[0], default)
     return default
+
+
+def parse_bool(value) -> bool:
+    """Parse loose truthy values commonly found in OSM-style metadata."""
+
+    if isinstance(value, list):
+        return any(parse_bool(item) for item in value)
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return False
+    if isinstance(value, (int, float)):
+        return bool(value)
+    return str(value).strip().lower() in {"yes", "true", "1", "y"}
 
 
 def normalize_tag(value) -> str | None:
@@ -412,6 +464,8 @@ def _graph_cache_token(
             k,
             _cache_value_token(data.get("length")),
             _cache_value_token(data.get("maxspeed")),
+            _cache_value_token(data.get("lanes")),
+            _cache_value_token(data.get("lanes_forward")),
             _cache_value_token(data.get("duration")),
             _cache_value_token(data.get("route")),
             _cache_value_token(data.get("ferry")),
@@ -419,6 +473,32 @@ def _graph_cache_token(
             _cache_value_token(data.get("grade")),
             _cache_value_token(data.get("toll")),
             _cache_value_token(data.get("surface")),
+            _cache_value_token(data.get("tunnel")),
+            _cache_value_token(data.get("vc_ratio")),
+            _cache_value_token(data.get("traffic_vc_ratio")),
+            _cache_value_token(data.get("traffic_volume_vph")),
+            _cache_value_token(data.get("traffic_flow_vph")),
+            _cache_value_token(data.get("volume_vph")),
+            _cache_value_token(data.get("traffic_speed_kmh")),
+            _cache_value_token(data.get("current_speed_kmh")),
+            _cache_value_token(data.get("live_speed_kmh")),
+            _cache_value_token(data.get("traffic_free_flow_kmh")),
+            _cache_value_token(data.get("free_flow_speed_kmh")),
+            _cache_value_token(data.get("traffic_confidence")),
+            _cache_value_token(data.get("speed_confidence")),
+            _cache_value_token(data.get("traffic_speed_category")),
+            _cache_value_token(data.get("speed_category")),
+            _cache_value_token(data.get("weather_overall_safety")),
+            _cache_value_token(data.get("lane_splitting_modifier")),
+            _cache_value_token(data.get("wind_risk_factor")),
+            _cache_value_token(data.get("incident_severity")),
+            _cache_value_token(data.get("traffic_incident")),
+            _cache_value_token(data.get("traffic_closed")),
+            _cache_value_token(data.get("is_night")),
+            _cache_value_token(data.get("lane_width_m")),
+            _cache_value_token(data.get("traffic_heavy_vehicle_share")),
+            _cache_value_token(data.get("heavy_vehicle_share")),
+            _cache_value_token(data.get("capacity_per_lane_vph")),
         ]
         if include_curve_inputs:
             edge_signature.extend(
@@ -501,15 +581,33 @@ def runtime_calibration_from_env(
         default=profile.default_ferry_boarding_delay_s,
     )
     vc_raw = os.getenv("MOTOMAP_VC_RATIO")
+    weather_raw = os.getenv("MOTOMAP_WEATHER_SAFETY")
+    lane_split_raw = os.getenv("MOTOMAP_LANE_SPLITTING_MODIFIER")
     vc_ratio_override: float | None = None
+    weather_safety_override: float | None = None
+    lane_splitting_modifier_override: float | None = None
     if vc_raw is not None:
-        vc_ratio_override = min(1.5, max(0.0, safe_float(vc_raw, default=0.0)))
+        vc_ratio_override = clamp(safe_float(vc_raw, default=0.0), 0.0, 2.0)
+    if weather_raw is not None:
+        weather_safety_override = clamp(
+            safe_float(weather_raw, default=1.0),
+            0.0,
+            1.0,
+        )
+    if lane_split_raw is not None:
+        lane_splitting_modifier_override = clamp(
+            safe_float(lane_split_raw, default=1.0),
+            0.0,
+            1.25,
+        )
 
     return RuntimeCalibration(
-        speed_factor=min(1.0, max(0.2, speed_factor)),
-        segment_delay_s=min(8.0, max(0.0, segment_delay_s)),
-        ferry_boarding_delay_s=min(1800.0, max(0.0, ferry_boarding_delay_s)),
+        speed_factor=clamp(speed_factor, 0.2, 1.0),
+        segment_delay_s=clamp(segment_delay_s, 0.0, 8.0),
+        ferry_boarding_delay_s=clamp(ferry_boarding_delay_s, 0.0, 1800.0),
         vc_ratio_override=vc_ratio_override,
+        weather_safety_override=weather_safety_override,
+        lane_splitting_modifier_override=lane_splitting_modifier_override,
     )
 
 
@@ -576,6 +674,245 @@ def filter_motorcycle_edges(
     return graph.edge_subgraph(keep).copy()
 
 
+def _first_present_float(
+    edge_data: Mapping[str, object],
+    *keys: str,
+) -> float | None:
+    """Return the first positive float found among ``keys``."""
+
+    for key in keys:
+        if key not in edge_data:
+            continue
+        value = safe_float(edge_data.get(key), default=0.0)
+        if value > 0.0:
+            return value
+    return None
+
+
+def _forward_capacity_vph(
+    edge_data: Mapping[str, object],
+    profile: RoutingAlgorithmProfile,
+) -> float:
+    """Estimate practical directional capacity for the edge."""
+
+    highway = get_highway_type(edge_data)
+    lanes_forward = max(1, parse_int(edge_data.get("lanes_forward"), 1))
+    capacity_per_lane = _first_present_float(
+        edge_data,
+        "capacity_per_lane_vph",
+        "traffic_capacity_per_lane_vph",
+    )
+    if capacity_per_lane is None:
+        capacity_per_lane = safe_float(
+            profile.road_capacity_per_lane.get(highway, 600),
+            default=600.0,
+        )
+    return max(100.0, capacity_per_lane * lanes_forward)
+
+
+def _speed_category(edge_data: Mapping[str, object]) -> str | None:
+    """Normalize provider speed-category tags such as ``SLOW`` or ``TRAFFIC_JAM``."""
+
+    for key in ("traffic_speed_category", "speed_category"):
+        value = edge_data.get(key)
+        if value is None:
+            continue
+        category = str(value).strip().upper()
+        if category:
+            return category
+    return None
+
+
+def _live_speed_confidence(
+    edge_data: Mapping[str, object],
+    profile: RoutingAlgorithmProfile,
+) -> float:
+    """Resolve provider confidence for live speed data."""
+
+    explicit = _first_present_float(edge_data, "traffic_confidence", "speed_confidence")
+    if explicit is not None:
+        return clamp(explicit, 0.0, 1.0)
+    if _first_present_float(edge_data, "traffic_speed_kmh", "current_speed_kmh", "live_speed_kmh"):
+        return profile.default_live_traffic_confidence
+    return 0.0
+
+
+def _resolve_vc_ratio(
+    edge_data: Mapping[str, object],
+    calibration: RuntimeCalibration,
+    profile: RoutingAlgorithmProfile,
+) -> float:
+    """Resolve the link V/C ratio from override, live data, or planning defaults."""
+
+    highway = get_highway_type(edge_data)
+    if calibration.vc_ratio_override is not None:
+        return clamp(calibration.vc_ratio_override, 0.0, 2.0)
+
+    direct_vc = _first_present_float(edge_data, "vc_ratio", "traffic_vc_ratio")
+    if direct_vc is not None:
+        return clamp(direct_vc, 0.0, 2.0)
+
+    live_volume_vph = _first_present_float(
+        edge_data,
+        "traffic_volume_vph",
+        "traffic_flow_vph",
+        "volume_vph",
+    )
+    if live_volume_vph is not None:
+        return clamp(live_volume_vph / _forward_capacity_vph(edge_data, profile), 0.0, 2.0)
+
+    category = _speed_category(edge_data)
+    if category == "TRAFFIC_JAM":
+        return 1.10
+    if category == "SLOW":
+        return 0.85
+    if category == "NORMAL":
+        return 0.55
+
+    return clamp(profile.peak_hour_vc_ratio.get(highway, 0.0), 0.0, 2.0)
+
+
+def _resolve_weather_safety_score(
+    edge_data: Mapping[str, object],
+    calibration: RuntimeCalibration,
+) -> float:
+    """Resolve edge safety score from runtime override or edge metadata."""
+
+    if calibration.weather_safety_override is not None:
+        return clamp(calibration.weather_safety_override, 0.0, 1.0)
+    value = _first_present_float(
+        edge_data,
+        "weather_overall_safety",
+        "overall_safety_score",
+    )
+    if value is None:
+        return 1.0
+    return clamp(value, 0.0, 1.0)
+
+
+def _resolve_lane_splitting_modifier(
+    edge_data: Mapping[str, object],
+    calibration: RuntimeCalibration,
+    profile: RoutingAlgorithmProfile,
+) -> float:
+    """Resolve context-sensitive lane-filtering multiplier for the edge."""
+
+    if calibration.lane_splitting_modifier_override is not None:
+        modifier = calibration.lane_splitting_modifier_override
+    else:
+        explicit = _first_present_float(
+            edge_data,
+            "lane_splitting_modifier",
+            "weather_lane_splitting_modifier",
+        )
+        if explicit is not None:
+            modifier = explicit
+        else:
+            safety = _resolve_weather_safety_score(edge_data, calibration)
+            modifier = 0.65 + (0.35 * safety)
+
+    if normalize_tag(edge_data.get("tunnel")) == "yes":
+        modifier *= profile.lane_filter_tunnel_modifier
+    if parse_bool(edge_data.get("is_night")):
+        modifier *= profile.lane_filter_night_modifier
+
+    heavy_vehicle_share = _first_present_float(
+        edge_data,
+        "traffic_heavy_vehicle_share",
+        "heavy_vehicle_share",
+    )
+    if heavy_vehicle_share is not None:
+        modifier *= max(
+            0.35,
+            1.0 - (profile.lane_filter_heavy_vehicle_penalty * clamp(heavy_vehicle_share, 0.0, 1.0)),
+        )
+
+    lane_width_m = _first_present_float(edge_data, "lane_width_m")
+    if (
+        lane_width_m is not None
+        and 0.0 < lane_width_m < profile.lane_filter_narrow_lane_width_m
+    ):
+        modifier *= profile.lane_filter_narrow_lane_modifier
+
+    return clamp(modifier, 0.0, 1.25)
+
+
+def _mode_weather_penalty(
+    edge_data: Mapping[str, object],
+    surus_modu: str,
+    profile: RoutingAlgorithmProfile,
+) -> float:
+    """Return multiplicative weather and incident penalty for route cost."""
+
+    safety = clamp(
+        safe_float(edge_data.get("weather_overall_safety"), default=1.0),
+        0.0,
+        1.0,
+    )
+    incident_severity = clamp(
+        safe_float(edge_data.get("incident_severity"), default=0.0),
+        0.0,
+        1.5,
+    )
+    if parse_bool(edge_data.get("traffic_incident")):
+        incident_severity = max(incident_severity, 0.5)
+    if parse_bool(edge_data.get("traffic_closed")):
+        return 1e6
+
+    if surus_modu == "standart":
+        weather_weight = profile.standart_weather_penalty_weight
+        incident_weight = profile.standart_incident_penalty_weight
+    elif surus_modu == "viraj_keyfi":
+        weather_weight = profile.viraj_weather_penalty_weight
+        incident_weight = profile.viraj_incident_penalty_weight
+    else:
+        weather_weight = profile.guvenli_weather_penalty_weight
+        incident_weight = profile.guvenli_incident_penalty_weight
+
+    return 1.0 + (weather_weight * (1.0 - safety)) + (incident_weight * incident_severity)
+
+
+def apply_weather_assessment_to_graph(
+    graph: nx.MultiDiGraph,
+    weather_assessment,
+) -> nx.MultiDiGraph:
+    """Project a route-level weather assessment onto every edge in the graph."""
+
+    overall_safety = clamp(
+        safe_float(getattr(weather_assessment, "overall_safety_score", 1.0), default=1.0),
+        0.0,
+        1.0,
+    )
+    lane_modifier = clamp(
+        safe_float(getattr(weather_assessment, "lane_splitting_modifier", 1.0), default=1.0),
+        0.0,
+        1.0,
+    )
+    wind_risk = clamp(
+        safe_float(getattr(weather_assessment, "wind_risk_factor", 1.0), default=1.0),
+        0.0,
+        1.0,
+    )
+
+    for _, _, _, data in graph.edges(keys=True, data=True):
+        highway = get_highway_type(data)
+        tunnel = normalize_tag(data.get("tunnel")) == "yes"
+        edge_safety = overall_safety
+        edge_lane_modifier = lane_modifier
+
+        if tunnel:
+            edge_safety = max(edge_safety, 0.8)
+            edge_lane_modifier = 0.0
+        elif highway in {"motorway", "motorway_link", "trunk", "trunk_link"} and wind_risk < 0.7:
+            edge_safety *= 0.9
+
+        data["weather_overall_safety"] = clamp(edge_safety, 0.0, 1.0)
+        data["lane_splitting_modifier"] = clamp(edge_lane_modifier, 0.0, 1.0)
+        data["wind_risk_factor"] = wind_risk
+
+    return graph
+
+
 def _effective_speed_kmh(
     edge_data: Mapping[str, object],
     calibration: RuntimeCalibration,
@@ -584,7 +921,7 @@ def _effective_speed_kmh(
     """Compute effective motorcycle speed considering road class, surface,
     grade, traffic congestion (BPR model) and motorcycle lane filtering.
 
-    The model has five layers:
+    The model has six layers:
 
     Layer 1 -- Free-flow speed (HCM Ch. 23 methodology):
       V_ff = V_posted * f_class * f_surface * f_grade * f_global
@@ -593,21 +930,29 @@ def _effective_speed_kmh(
       f_bpr = 1 / [1 + alpha * (V/C) ^ beta]
       V_car = V_ff * f_bpr
 
-    Layer 3 -- Motorcycle lane-filtering advantage:
-      If V/C > threshold and lanes >= 2:
-        V_moto = V_car + bonus(lanes)
+    Layer 3 -- Live traffic blending:
+      V_car^* = (1 - lambda) * V_car + lambda * V_live
+
+    Layer 4 -- Motorcycle lane-filtering advantage:
+      If congestion is active and lanes >= 2:
+        V_moto = V_car^* + bonus(lanes, weather, context)
       Else:
-        V_moto = V_car
+        V_moto = V_car^*
 
-    The V/C ratio can come from three sources (priority order):
+    Layer 5 -- Weather moderation:
+      V_weather = V_moto * f_weather
+
+    The V/C ratio can come from multiple sources (priority order):
       1. MOTOMAP_VC_RATIO env var (global override for testing)
-      2. edge_data["vc_ratio"] (per-edge live traffic feed)
-      3. profile.peak_hour_vc_ratio[highway] (statistical default)
+      2. edge_data["vc_ratio"] or edge_data["traffic_vc_ratio"]
+      3. edge_data["traffic_volume_vph"] / directional_capacity
+      4. provider speed categories such as NORMAL / SLOW / TRAFFIC_JAM
+      5. profile.peak_hour_vc_ratio[highway] (statistical default)
 
-    When MOTOMAP_VC_RATIO is unset and no per-edge data exists, the model
-    falls back to peak-hour statistical V/C ratios, making it a planning-level
-    estimator.  When a real-time traffic feed populates edge_data["vc_ratio"],
-    the model becomes dynamically responsive to current conditions.
+    Live traffic feeds may also provide edge-level current speed, free-flow
+    speed, and confidence. Those values are blended with the BPR estimate to
+    avoid overreacting to noisy observations while remaining responsive to
+    current conditions.
     """
 
     highway = get_highway_type(edge_data)
@@ -626,30 +971,72 @@ def _effective_speed_kmh(
     v_ff = speed_kmh * f_class * f_surface * f_grade * calibration.speed_factor
 
     # Layer 2: BPR congestion
-    if calibration.vc_ratio_override is not None:
-        vc = calibration.vc_ratio_override
-    else:
-        edge_vc = edge_data.get("vc_ratio")
-        if edge_vc is not None:
-            vc = safe_float(edge_vc, default=0.0)
-        else:
-            vc = profile.peak_hour_vc_ratio.get(highway, 0.0)
-
+    vc = _resolve_vc_ratio(edge_data, calibration, profile)
     alpha = profile.bpr_alpha.get(highway, 0.15)
     beta = profile.bpr_beta.get(highway, 4.0)
     bpr_factor = 1.0 / (1.0 + alpha * (vc ** beta)) if vc > 0.0 else 1.0
-    v_car = v_ff * bpr_factor
+    v_car_model = v_ff * bpr_factor
 
-    # Layer 3: motorcycle lane-filtering advantage
+    # Layer 3: blend in live speed observations when present.
+    live_speed_kmh = _first_present_float(
+        edge_data,
+        "traffic_speed_kmh",
+        "current_speed_kmh",
+        "live_speed_kmh",
+    )
+    if live_speed_kmh is not None:
+        live_speed_cap = _first_present_float(
+            edge_data,
+            "traffic_free_flow_kmh",
+            "free_flow_speed_kmh",
+        )
+        if live_speed_cap is None:
+            live_speed_cap = v_ff
+        live_speed_kmh = clamp(live_speed_kmh, 5.0, max(5.0, live_speed_cap))
+        live_confidence = _live_speed_confidence(edge_data, profile)
+        v_car = ((1.0 - live_confidence) * v_car_model) + (live_confidence * live_speed_kmh)
+    else:
+        v_car = v_car_model
+
+    # Layer 4: motorcycle lane-filtering advantage
     lanes_forward = parse_int(edge_data.get("lanes_forward"), 1)
-    if vc > profile.lane_filter_vc_threshold and lanes_forward >= 2:
+    speed_category = _speed_category(edge_data)
+    congestion_active = (
+        vc > profile.lane_filter_vc_threshold
+        or speed_category in {"SLOW", "TRAFFIC_JAM"}
+        or (live_speed_kmh is not None and v_car <= profile.lane_filter_max_car_speed_kmh)
+    )
+    if congestion_active and lanes_forward >= 2:
         bonus_key = min(lanes_forward, 3)
-        bonus = profile.lane_filter_speed_bonus.get(bonus_key, 5.0)
-        v_moto = max(v_car + bonus, profile.lane_filter_min_speed_kmh)
+        base_bonus = profile.lane_filter_speed_bonus.get(bonus_key, 5.0)
+        lane_modifier = _resolve_lane_splitting_modifier(edge_data, calibration, profile)
+        speed_window_factor = clamp(
+            (profile.lane_filter_max_car_speed_kmh - v_car)
+            / max(5.0, profile.lane_filter_max_car_speed_kmh - 5.0),
+            0.0,
+            1.0,
+        )
+        bonus = base_bonus * lane_modifier * speed_window_factor
+        if bonus > 0.0:
+            min_filtered_speed = profile.lane_filter_min_speed_kmh * max(0.5, lane_modifier)
+            v_moto = max(v_car + bonus, min_filtered_speed)
+            v_moto = min(
+                v_moto,
+                max(v_car, profile.lane_filter_max_effective_speed_kmh),
+            )
+        else:
+            v_moto = v_car
     else:
         v_moto = v_car
 
-    return max(5.0, v_moto)
+    # Layer 5: weather moderation. Unsafe conditions reduce effective speed,
+    # but the factor is bounded to avoid exploding ETA in globally bad weather.
+    weather_safety = _resolve_weather_safety_score(edge_data, calibration)
+    weather_factor = profile.weather_speed_floor_factor + (
+        (1.0 - profile.weather_speed_floor_factor) * weather_safety
+    )
+
+    return max(5.0, v_moto * weather_factor)
 
 
 def _intersection_delay(
@@ -674,18 +1061,22 @@ def compute_edge_travel_time(
 ) -> float:
     """Estimate edge travel time in seconds for roads and ferry segments.
 
-    The travel time model follows a three-layer approach adapted from HCM
+    The travel time model follows a layered approach adapted from HCM
     (Highway Capacity Manual) methodology:
 
     1. **Free-flow speed** is derived from the posted speed limit adjusted by
        road-class, surface-type and grade reduction factors.
-    2. **Segment traversal time** is length / effective_speed.
-    3. **Intersection delay** is added per-edge based on road class (proxy for
+    2. **Traffic state** is resolved from V/C, live speed, live volume, or
+       provider speed categories.
+    3. **Motorcycle filtering and weather moderation** modify the car-based
+       speed estimate in congested mixed traffic.
+    4. **Segment traversal time** is length / effective_speed.
+    5. **Intersection delay** is added per-edge based on road class (proxy for
        signal/stop density).
 
-    Without real-time traffic volume data the model cannot apply the full BPR
-    volume-delay function.  The ``speed_factor`` runtime knob serves as a
-    residual congestion proxy that can be tuned per deployment context.
+    When no live traffic exists the model falls back to statistical peak-hour
+    V/C defaults.  When live speed, volume, or provider traffic categories are
+    present, the edge time automatically shifts into a dynamic mode.
     """
 
     calibration = calibration or runtime_calibration_from_env(profile)
@@ -752,6 +1143,9 @@ def ensure_travel_time_to_graph(
         calibration.speed_factor,
         calibration.segment_delay_s,
         calibration.ferry_boarding_delay_s,
+        calibration.vc_ratio_override,
+        calibration.weather_safety_override,
+        calibration.lane_splitting_modifier_override,
         graph_token,
     )
     if graph.graph.get("_motomap_travel_time_state") == state:
@@ -892,7 +1286,11 @@ def build_mode_specific_cost(
                 and (u in major_adjacent_nodes or v in major_adjacent_nodes)
             ):
                 road_penalty += profile.motorway_side_connector_penalty
-            data[weight_attr] = base * (1.0 + road_penalty)
+            data[weight_attr] = base * (1.0 + road_penalty) * _mode_weather_penalty(
+                data,
+                "standart",
+                profile,
+            )
         graph.graph["_motomap_route_revision"] = (
             int(graph.graph.get("_motomap_route_revision", 0)) + 1
         )
@@ -932,7 +1330,11 @@ def build_mode_specific_cost(
             road_bonus = profile.viraj_keyfi_road_bonus.get(highway, 0.0)
             bonus = 1.0 + 0.95 * curvature_term + 0.70 * fun_density_term + road_bonus
             penalty = 1.0 + 0.25 * danger_density_term + 0.45 * high_risk
-            data[weight_attr] = (base / max(1e-6, bonus)) * penalty
+            data[weight_attr] = (
+                (base / max(1e-6, bonus))
+                * penalty
+                * _mode_weather_penalty(data, "viraj_keyfi", profile)
+            )
             continue
 
         road_penalty = profile.guvenli_road_penalty.get(highway, 0.0)
@@ -944,7 +1346,11 @@ def build_mode_specific_cost(
             + 5.00 * downhill_penalty
             + road_penalty
         )
-        data[weight_attr] = base * penalty
+        data[weight_attr] = (
+            base
+            * penalty
+            * _mode_weather_penalty(data, "guvenli", profile)
+        )
 
     graph.graph["_motomap_route_revision"] = (
         int(graph.graph.get("_motomap_route_revision", 0)) + 1
