@@ -1,0 +1,310 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - link "Home" [ref=e3] [cursor=pointer]:
+      - /url: "#hero-top"
+      - generic [ref=e5]: Home
+    - link "Layers" [ref=e7] [cursor=pointer]:
+      - /url: "#features"
+      - generic [ref=e9]: Layers
+    - link "Riders" [ref=e11] [cursor=pointer]:
+      - /url: "#how"
+      - generic [ref=e13]: Riders
+    - link "Numbers" [ref=e15] [cursor=pointer]:
+      - /url: "#numbers"
+      - generic [ref=e17]: Numbers
+    - link "Get Started" [ref=e19] [cursor=pointer]:
+      - /url: "#cta-section"
+      - generic [ref=e21]: Get Started
+  - navigation [ref=e22]:
+    - generic [ref=e23]:
+      - link "MotoMap MOTOMAP v0.98" [ref=e24] [cursor=pointer]:
+        - /url: index.html
+        - img "MotoMap" [ref=e25]
+        - generic [ref=e26]: MOTOMAP
+        - generic [ref=e27]: v0.98
+      - list [ref=e28]:
+        - listitem [ref=e29]:
+          - link "Features" [ref=e30] [cursor=pointer]:
+            - /url: index.html#features
+        - listitem [ref=e31]:
+          - link "Riders" [ref=e32] [cursor=pointer]:
+            - /url: index.html#how
+        - listitem [ref=e33]:
+          - link "Releases" [ref=e34] [cursor=pointer]:
+            - /url: releases.html
+        - listitem [ref=e35]:
+          - link "GitHub" [ref=e36] [cursor=pointer]:
+            - /url: https://github.com/alipasha03/motomap
+  - generic [ref=e39]:
+    - generic [ref=e40]: Open-source motorcycle routing
+    - heading "Route Intelligence for Motorcycle Riders" [level=1] [ref=e42]:
+      - text: Route Intelligence
+      - text: for Motorcycle Riders
+    - paragraph [ref=e43]: Five-layer speed model. 20 surface types. BPR congestion analysis. Real-time ready architecture built on peer-reviewed research.
+    - generic [ref=e44]:
+      - link "View on GitHub" [ref=e45] [cursor=pointer]:
+        - /url: https://github.com/alipasha03/motomap
+        - img [ref=e46]
+        - text: View on GitHub
+      - link "Explore Features" [ref=e48] [cursor=pointer]:
+        - /url: "#features"
+        - text: Explore Features
+        - img [ref=e49]
+    - generic [ref=e51]:
+      - generic [ref=e52]:
+        - generic [ref=e54]: Speed Model
+        - generic [ref=e55]: 5 Layers
+      - generic [ref=e56]:
+        - generic [ref=e58]: Surfaces
+        - generic [ref=e59]: 20 Types
+      - generic [ref=e60]:
+        - generic [ref=e62]: Tests
+        - generic [ref=e63]: 1,005
+      - generic [ref=e64]:
+        - generic [ref=e66]: Data
+        - generic [ref=e67]: OSM
+    - img [ref=e68]
+  - generic [ref=e78]:
+    - generic [ref=e79]:
+      - generic [ref=e80]: Engine
+      - heading "Five layers of intelligence" [level=2] [ref=e81]:
+        - text: Five layers of
+        - emphasis [ref=e82]: intelligence
+      - paragraph [ref=e83]: Every road segment passes through five data layers. The result is a route no generic map app can match.
+    - generic [ref=e84]:
+      - generic [ref=e86]: 01 / 05
+      - generic [ref=e97]:
+        - generic [ref=e99]:
+          - generic [ref=e100]:
+            - region [ref=e102]
+            - group [ref=e103]:
+              - link [ref=e106] [cursor=pointer]:
+                - /url: https://maplibre.org/
+                - text: MapLibre
+          - generic [ref=e107]: Loading live map style
+          - generic [ref=e110]: Fast Roads
+          - generic [ref=e111]:
+            - generic [ref=e112]: Standard Mode
+            - strong [ref=e113]: 1 lead / 2 support
+          - generic [ref=e114]:
+            - generic [ref=e115]: Map View
+            - strong [ref=e116]: Ranked corridors
+        - generic [ref=e117]:
+          - generic [ref=e118]:
+            - generic [ref=e119]: Ride Legend
+            - heading "Fast Roads" [level=3] [ref=e120]
+            - paragraph [ref=e121]: Lead sprint corridor with ranked support links from route metadata.
+            - generic [ref=e122]:
+              - generic [ref=e123]:
+                - generic [ref=e125]: Primary sprint
+                - generic [ref=e126]: 82 km/h
+              - generic [ref=e127]:
+                - generic [ref=e129]: Local shortcut
+                - generic [ref=e130]: 50 km/h
+              - generic [ref=e131]:
+                - generic [ref=e133]: Urban glide
+                - generic [ref=e134]: 50 km/h
+            - generic [ref=e135]:
+              - generic [ref=e136]:
+                - generic [ref=e137]: Focus
+                - generic [ref=e138]: Standard Mode
+              - generic [ref=e139]:
+                - generic [ref=e140]: Refresh
+                - generic [ref=e141]: 1 lead / 2 support
+              - generic [ref=e142]:
+                - generic [ref=e143]: Priority
+                - generic [ref=e144]: 3.8 km
+          - generic [ref=e145] [cursor=pointer]:
+            - generic [ref=e146]: "01"
+            - generic [ref=e147]:
+              - heading "Fast Roads" [level=3] [ref=e148]:
+                - text: Fast
+                - emphasis [ref=e149]: Roads
+              - paragraph [ref=e150]: The lead sprint line stays forward while support corridors collapse into a tight, readable rail.
+              - generic [ref=e151]:
+                - generic [ref=e152]: Corridor hierarchy
+                - generic [ref=e153]: Lead corridor
+          - generic [ref=e154] [cursor=pointer]:
+            - generic [ref=e155]: "02"
+            - generic [ref=e156]:
+              - heading "Live Traffic" [level=3] [ref=e157]:
+                - text: Live
+                - emphasis [ref=e158]: Traffic
+              - generic [ref=e159]:
+                - generic [ref=e160]: Rush framing
+                - generic [ref=e161]: Pressure lens
+          - generic [ref=e162] [cursor=pointer]:
+            - generic [ref=e163]: "03"
+            - generic [ref=e164]:
+              - heading "Ride Shield" [level=3] [ref=e165]:
+                - text: Ride
+                - emphasis [ref=e166]: Shield
+              - generic [ref=e167]:
+                - generic [ref=e168]: Calm hierarchy
+                - generic [ref=e169]: Protected path
+          - generic [ref=e170] [cursor=pointer]:
+            - generic [ref=e171]: "04"
+            - generic [ref=e172]:
+              - heading "Twist Finder" [level=3] [ref=e173]:
+                - text: Twist
+                - emphasis [ref=e174]: Finder
+              - generic [ref=e175]:
+                - generic [ref=e176]: Apex hierarchy
+                - generic [ref=e177]: Lead ribbon
+          - generic [ref=e178] [cursor=pointer]:
+            - generic [ref=e179]: "05"
+            - generic [ref=e180]:
+              - heading "Elevation Flow" [level=3] [ref=e181]:
+                - text: Elevation
+                - emphasis [ref=e182]: Flow
+              - generic [ref=e183]:
+                - generic [ref=e184]: Terrain mood
+                - generic [ref=e185]: Grade direction
+  - generic [ref=e187]:
+    - generic [ref=e188]:
+      - generic [ref=e189]: Riders
+      - heading "Built for every rider" [level=2] [ref=e190]:
+        - text: Built for every
+        - emphasis [ref=e191]: rider
+      - paragraph [ref=e192]: Whether you commute, tour, race, or explore — MotoMap adapts to how you actually ride.
+    - generic [ref=e193]:
+      - generic [ref=e194]:
+        - generic [ref=e196]: S
+        - heading "Sport Rider" [level=3] [ref=e197]:
+          - text: Sport
+          - emphasis [ref=e198]: Rider
+        - paragraph [ref=e199]: Track-day addicts and sportbike owners. You want the fastest, smoothest asphalt-only routes — no detours, no gravel, maximum lean angle.
+        - generic [ref=e200]: “ "I used to memorize highway exits. Now MotoMap finds roads I didn't know existed."
+      - generic [ref=e201]:
+        - generic [ref=e203]: A
+        - heading "Adventure Rider" [level=3] [ref=e204]:
+          - text: Adventure
+          - emphasis [ref=e205]: Rider
+        - paragraph [ref=e206]: GS owners and dual-sport explorers. You seek gravel passes, mountain trails, and roads that don't show up on Google Maps.
+        - generic [ref=e207]: “ "The surface awareness feature alone saved me from a 40km mud section in Thrace."
+      - generic [ref=e208]:
+        - generic [ref=e210]: T
+        - heading "Touring Rider" [level=3] [ref=e211]:
+          - text: Touring
+          - emphasis [ref=e212]: Rider
+        - paragraph [ref=e213]: Long-haul riders who cover 500+ km per day. You need weather-aware routing, elevation profiles, and rest stop planning.
+        - generic [ref=e214]: “ "The grade analysis told me about a 12% pass before I loaded my panniers. Game changer."
+      - generic [ref=e215]:
+        - generic [ref=e217]: C
+        - heading "Daily Commuter" [level=3] [ref=e218]:
+          - text: Daily
+          - emphasis [ref=e219]: Commuter
+        - paragraph [ref=e220]: Riders who fight traffic twice a day. You need the fastest path through congestion with real-time lane-filtering advantage.
+        - generic [ref=e221]: “ "BPR congestion model + lane filtering = 22 minutes off my daily commute."
+  - generic [ref=e223]:
+    - generic [ref=e224]:
+      - generic [ref=e225]: Scale
+      - heading "Numbers that move" [level=2] [ref=e226]:
+        - text: Numbers that
+        - emphasis [ref=e227]: move
+      - paragraph [ref=e228]: Measured, tested, and open for inspection — every claim backed by code.
+    - generic [ref=e229]:
+      - generic [ref=e230]:
+        - generic [ref=e231]: "0"
+        - generic [ref=e232]: Tests passing
+      - generic [ref=e233]:
+        - generic [ref=e234]: "0"
+        - generic [ref=e235]: Surface types
+      - generic [ref=e236]:
+        - generic [ref=e237]: "0"
+        - generic [ref=e238]: Speed layers
+      - generic [ref=e239]:
+        - generic [ref=e240]: "0"
+        - generic [ref=e241]: Riding modes
+    - generic [ref=e243]:
+      - generic [ref=e244]: Sport Routing
+      - generic [ref=e246]: Twisty Mountain Passes
+      - generic [ref=e248]: Safe Commute
+      - generic [ref=e250]: Weather-Aware
+      - generic [ref=e252]: OpenStreetMap Data
+      - generic [ref=e254]: BPR Congestion
+      - generic [ref=e256]: Lane Filtering
+      - generic [ref=e258]: Grade Analysis
+      - generic [ref=e260]: Surface Detection
+      - generic [ref=e262]: Curvature Scoring
+      - generic [ref=e264]: Sport Routing
+      - generic [ref=e266]: Twisty Mountain Passes
+      - generic [ref=e268]: Safe Commute
+      - generic [ref=e270]: Weather-Aware
+      - generic [ref=e272]: OpenStreetMap Data
+      - generic [ref=e274]: BPR Congestion
+      - generic [ref=e276]: Lane Filtering
+      - generic [ref=e278]: Grade Analysis
+      - generic [ref=e280]: Surface Detection
+      - generic [ref=e282]: Curvature Scoring
+  - generic [ref=e286]:
+    - generic [ref=e287]: Open Source
+    - heading "Ready to ride smarter?" [level=2] [ref=e288]:
+      - text: Ready to ride
+      - emphasis [ref=e289]: smarter
+      - text: "?"
+    - paragraph [ref=e290]: MotoMap is free forever and built for the community. Star the repo, open an issue, or submit a pull request.
+    - link "View on GitHub" [ref=e291] [cursor=pointer]:
+      - /url: https://github.com/alipasha03/motomap
+      - img [ref=e292]
+      - text: View on GitHub
+    - generic [ref=e294]: MIT License · Built with peer-reviewed research
+  - contentinfo [ref=e295]:
+    - generic [ref=e296]:
+      - generic [ref=e297]:
+        - generic [ref=e298]:
+          - generic [ref=e299]:
+            - img "MotoMap" [ref=e300]
+            - generic [ref=e301]: MOTOMAP
+          - generic [ref=e302]: Open-source route intelligence — built on peer-reviewed research and real road data.
+          - generic [ref=e303]:
+            - link "GitHub" [ref=e304] [cursor=pointer]:
+              - /url: https://github.com/alipasha03/motomap
+              - img [ref=e305]
+            - link "License" [ref=e307] [cursor=pointer]:
+              - /url: https://github.com/alipasha03/motomap/blob/main/LICENSE
+              - img [ref=e308]
+            - link "Issues" [ref=e311] [cursor=pointer]:
+              - /url: https://github.com/alipasha03/motomap/issues
+              - img [ref=e312]
+        - generic [ref=e314]:
+          - heading "Product" [level=4] [ref=e315]
+          - list [ref=e316]:
+            - listitem [ref=e317]:
+              - link "Features" [ref=e318] [cursor=pointer]:
+                - /url: "#features"
+            - listitem [ref=e319]:
+              - link "Riders" [ref=e320] [cursor=pointer]:
+                - /url: "#how"
+            - listitem [ref=e321]:
+              - link "Releases" [ref=e322] [cursor=pointer]:
+                - /url: releases.html
+        - generic [ref=e323]:
+          - heading "Community" [level=4] [ref=e324]
+          - list [ref=e325]:
+            - listitem [ref=e326]:
+              - link "Contributing" [ref=e327] [cursor=pointer]:
+                - /url: https://github.com/alipasha03/motomap/blob/main/CONTRIBUTING.md
+            - listitem [ref=e328]:
+              - link "Issues" [ref=e329] [cursor=pointer]:
+                - /url: https://github.com/alipasha03/motomap/issues
+            - listitem [ref=e330]:
+              - link "Discussions" [ref=e331] [cursor=pointer]:
+                - /url: https://github.com/alipasha03/motomap/discussions
+        - generic [ref=e332]:
+          - heading "Resources" [level=4] [ref=e333]
+          - list [ref=e334]:
+            - listitem [ref=e335]:
+              - link "MIT License" [ref=e336] [cursor=pointer]:
+                - /url: https://github.com/alipasha03/motomap/blob/main/LICENSE
+            - listitem [ref=e337]:
+              - link "Code of Conduct" [ref=e338] [cursor=pointer]:
+                - /url: https://github.com/alipasha03/motomap/blob/main/CODE_OF_CONDUCT.md
+            - listitem [ref=e339]:
+              - link "Source Code" [ref=e340] [cursor=pointer]:
+                - /url: https://github.com/alipasha03/motomap
+      - generic [ref=e341]:
+        - generic [ref=e342]:
+          - text: © 2026 MotoMap ·
+          - emphasis [ref=e343]: Ride smarter
+        - generic [ref=e344]: Released under the MIT License

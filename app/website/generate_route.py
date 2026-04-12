@@ -251,6 +251,484 @@ def summarize_path(graph: nx.MultiDiGraph, nodes: list, weight_attr: str) -> dic
     }
 
 
+def edge_geometry_coords(
+    graph: nx.MultiDiGraph, u: int, v: int, edge_data: dict
+) -> list[dict]:
+    geometry = edge_data.get("geometry")
+    if geometry is not None and hasattr(geometry, "coords"):
+        coords = list(geometry.coords)
+        if coords:
+            return [{"lat": float(lat), "lng": float(lng)} for lng, lat in coords]
+    return [
+        {"lat": float(graph.nodes[u]["y"]), "lng": float(graph.nodes[u]["x"])},
+        {"lat": float(graph.nodes[v]["y"]), "lng": float(graph.nodes[v]["x"])},
+    ]
+
+
+def midpoint_coord(coords: list[dict]) -> dict:
+    if not coords:
+        return {"lat": 0.0, "lng": 0.0}
+    return coords[len(coords) // 2]
+
+
+def normalize_tag_value(value, default: str) -> str:
+    if isinstance(value, (list, tuple, set)):
+        parts = [str(item).strip() for item in value if str(item).strip()]
+    else:
+        text = str(value or "").strip()
+        parts = [text] if text else []
+    if not parts:
+        return default
+    seen: list[str] = []
+    for part in parts:
+        cleaned = part.replace("_", " ").strip()
+        if cleaned and cleaned not in seen:
+            seen.append(cleaned)
+    return " / ".join(seen[:2]) if seen else default
+
+
+def merge_record_cluster(records: list[dict]) -> dict:
+    coords: list[dict] = []
+    surfaces: list[str] = []
+    highways: list[str] = []
+    weighted_grade = 0.0
+    total_length = 0.0
+
+    for record in records:
+        segment_coords = record["coordinates"]
+        if coords and segment_coords:
+            if coords[-1] == segment_coords[0]:
+                coords.extend(segment_coords[1:])
+            else:
+                coords.extend(segment_coords)
+        else:
+            coords.extend(segment_coords)
+        surfaces.append(record["surface"])
+        highways.append(record["highway"])
+        length = float(record["length_m"])
+        total_length += length
+        weighted_grade += float(record["grade"]) * max(length, 1.0)
+
+    return {
+        "path_index": records[0]["path_index"],
+        "path_index_end": records[-1].get("path_index_end", records[-1]["path_index"]),
+        "coordinates": coords,
+        "midpoint": midpoint_coord(coords),
+        "length_m": round(total_length, 1),
+        "maxspeed": max(int(record["maxspeed"]) for record in records),
+        "surface": normalize_tag_value(surfaces, "unknown"),
+        "lanes": max(int(record["lanes"]) for record in records),
+        "highway": normalize_tag_value(highways, "unclassified"),
+        "grade": round(weighted_grade / max(total_length, 1.0), 4),
+        "viraj_fun": sum(int(record["viraj_fun"]) for record in records),
+        "viraj_tehlike": sum(int(record["viraj_tehlike"]) for record in records),
+        "hairpin": sum(int(record["hairpin"]) for record in records),
+        "high_risk": any(bool(record["high_risk"]) for record in records),
+        "lane_split_m": round(sum(float(record["lane_split_m"]) for record in records), 1),
+    }
+
+
+def build_signal_clusters(
+    records: list[dict],
+    signal_fn,
+    bridge_limit: int = 0,
+    bridge_max_length_m: float = 120.0,
+) -> list[dict]:
+    clusters: list[dict] = []
+    active: list[dict] = []
+    bridges_used = 0
+
+    def flush() -> None:
+        nonlocal active, bridges_used
+        if active:
+            clusters.append(merge_record_cluster(active))
+        active = []
+        bridges_used = 0
+
+    for record in records:
+        is_signal = bool(signal_fn(record))
+        if is_signal:
+            active.append(record)
+            bridges_used = 0
+            continue
+        if active and bridges_used < bridge_limit and float(record["length_m"]) <= bridge_max_length_m:
+            active.append(record)
+            bridges_used += 1
+            continue
+        flush()
+
+    flush()
+    return clusters
+
+
+def build_keyed_clusters(records: list[dict], key_fn) -> list[dict]:
+    clusters: list[dict] = []
+    active: list[dict] = []
+    active_key: str | None = None
+
+    def flush() -> None:
+        nonlocal active, active_key
+        if active:
+            merged = merge_record_cluster(active)
+            merged["cluster_key"] = active_key
+            clusters.append(merged)
+        active = []
+        active_key = None
+
+    for record in records:
+        key = key_fn(record)
+        if key is None:
+            flush()
+            continue
+        if active and key == active_key:
+            active.append(record)
+            continue
+        flush()
+        active = [record]
+        active_key = key
+
+    flush()
+    return clusters
+
+
+def path_edge_records(
+    graph: nx.MultiDiGraph, nodes: list[int], weight_attr: str
+) -> list[dict]:
+    records = []
+    for idx in range(len(nodes) - 1):
+        edge = best_edge_data(graph, nodes[idx], nodes[idx + 1], weight_attr)
+        if edge is None:
+            continue
+        coords = edge_geometry_coords(graph, nodes[idx], nodes[idx + 1], edge)
+        records.append(
+            {
+                "path_index": idx,
+                "path_index_end": idx,
+                "coordinates": coords,
+                "midpoint": midpoint_coord(coords),
+                "length_m": round(float(edge.get("length", 0.0) or 0.0), 1),
+                "maxspeed": int(edge.get("maxspeed", 0) or 0),
+                "surface": normalize_tag_value(edge.get("surface"), "unknown"),
+                "lanes": int(edge.get("lanes", 0) or 0),
+                "highway": normalize_tag_value(edge.get("highway"), "unclassified"),
+                "grade": round(float(edge.get("grade", 0.0) or 0.0), 4),
+                "viraj_fun": int(edge.get("viraj_fun_sayisi", 0) or 0),
+                "viraj_tehlike": int(edge.get("viraj_tehlike_sayisi", 0) or 0),
+                "hairpin": int(edge.get("viraj_hairpin_sayisi", 0) or 0),
+                "high_risk": bool(edge.get("yuksek_risk_bolge", False)),
+                "lane_split_m": round(float(edge.get("serit_paylasimi_m", 0.0) or 0.0), 1),
+            }
+        )
+    return records
+
+
+def segment_entry(record: dict, label: str, tone: str) -> dict:
+    return {
+        "label": label,
+        "tone": tone,
+        "coordinates": record["coordinates"],
+        "midpoint": record["midpoint"],
+        "length_m": record["length_m"],
+        "maxspeed": record["maxspeed"],
+        "surface": record["surface"],
+        "lanes": record["lanes"],
+        "highway": record["highway"],
+        "grade": record["grade"],
+        "viraj_fun": record["viraj_fun"],
+        "viraj_tehlike": record["viraj_tehlike"],
+        "hairpin": record["hairpin"],
+        "high_risk": record["high_risk"],
+        "lane_split_m": record["lane_split_m"],
+    }
+
+
+def top_records(records: list[dict], key_fn, limit: int = 3) -> list[dict]:
+    return sorted(records, key=key_fn, reverse=True)[:limit]
+
+
+def highway_family_label(highway: str) -> str:
+    text = str(highway or "").lower()
+    if "motorway" in text or "trunk" in text or "primary" in text:
+        return "primary"
+    if "secondary" in text:
+        return "secondary"
+    if "tertiary" in text:
+        return "tertiary"
+    if "residential" in text:
+        return "residential"
+    return "urban"
+
+
+def select_showcase_records(
+    records: list[dict],
+    key_fn,
+    limit: int = 3,
+    min_length_m: float = 0.0,
+    min_index_gap: int = 0,
+    bucket_fn=None,
+) -> list[dict]:
+    candidates = [record for record in records if record["length_m"] >= min_length_m] or records
+    ranked = sorted(candidates, key=key_fn, reverse=True)
+    selected: list[dict] = []
+    used_buckets: set[str] = set()
+
+    for record in ranked:
+        bucket = bucket_fn(record) if bucket_fn else None
+        if bucket and bucket in used_buckets:
+            continue
+        record_start = int(record.get("path_index", 0))
+        record_end = int(record.get("path_index_end", record_start))
+        if min_index_gap and any(
+            not (
+                record_end + min_index_gap <= int(chosen.get("path_index", 0))
+                or int(chosen.get("path_index_end", chosen.get("path_index", 0))) + min_index_gap <= record_start
+            )
+            for chosen in selected
+        ):
+            continue
+        selected.append(record)
+        if bucket:
+            used_buckets.add(bucket)
+        if len(selected) >= limit:
+            return selected
+
+    for record in ranked:
+        if record in selected:
+            continue
+        selected.append(record)
+        if len(selected) >= limit:
+            break
+    return selected
+
+
+def speed_segment_label(record: dict) -> str:
+    cluster_key = record.get("cluster_key")
+    family = highway_family_label(record["highway"])
+    if cluster_key == "sprint" or record["maxspeed"] >= 80:
+        return "Primary sprint"
+    if cluster_key == "connector" or record["maxspeed"] >= 60:
+        return "Fast connector"
+    if cluster_key == "shortcut" or family == "residential":
+        return "Local shortcut"
+    if family == "secondary":
+        return "Secondary glide"
+    return "Urban glide"
+
+
+def traffic_segment_label(record: dict) -> str:
+    cluster_key = record.get("cluster_key")
+    if cluster_key == "bypass" or record["lane_split_m"] >= 180:
+        return "Lane-share relief"
+    if cluster_key == "relief":
+        return "Rush release"
+    if cluster_key == "rush":
+        return "Rush corridor"
+    if record["lanes"] >= 4:
+        return "Wide-lane bypass"
+    return "Pressure pocket"
+
+
+def shield_segment_label(record: dict) -> str:
+    cluster_key = record.get("cluster_key")
+    family = highway_family_label(record["highway"])
+    if cluster_key == "watch" or record["high_risk"] or record["viraj_tehlike"] > 0:
+        return "Watch zone"
+    if cluster_key == "neighborhood" or family == "residential":
+        return "Calm neighborhood corridor"
+    if cluster_key == "arterial" or family == "primary":
+        return "Protected arterial link"
+    return "Calm connector"
+
+
+def curvature_segment_label(record: dict) -> str:
+    if record["hairpin"] > 0:
+        return "Hairpin sequence"
+    if record["viraj_fun"] >= 5:
+        return "Apex ribbon"
+    if record["viraj_fun"] >= 3:
+        return "Sweeper set"
+    if record["viraj_tehlike"] > 0:
+        return "Technical bend"
+    return "Curvy section"
+
+
+def elevation_segment_label(record: dict) -> str:
+    cluster_key = record.get("cluster_key")
+    grade = float(record["grade"])
+    length_m = float(record["length_m"])
+    if cluster_key == "steep-climb" or grade >= 0.05:
+        return "Summit wall" if length_m >= 220 else "Steep climb"
+    if cluster_key == "climb" or grade >= 0.02:
+        return "Cresting climb" if length_m >= 240 else "Climb ramp"
+    if cluster_key == "steep-descent" or grade <= -0.05:
+        return "Brake-side descent" if length_m >= 190 else "Sharp descent"
+    return "Coast-side drop" if length_m >= 240 else "Rolling descent"
+
+
+def build_feature_overlays(
+    graph: nx.MultiDiGraph,
+    result: dict,
+    selected_paths_by_mode: dict[str, list[int]],
+) -> dict:
+    standard_records = path_edge_records(
+        graph, selected_paths_by_mode.get("standart", []), weight_attr=mode_weight_attr("standart")
+    )
+    curvy_records = path_edge_records(
+        graph, selected_paths_by_mode.get("viraj_keyfi", []), weight_attr=mode_weight_attr("viraj_keyfi")
+    )
+    safe_records = path_edge_records(
+        graph, selected_paths_by_mode.get("guvenli", []), weight_attr=mode_weight_attr("guvenli")
+    )
+
+    return {
+        "speed": {
+            "mode": "standart",
+            "segments": [
+                segment_entry(
+                    record,
+                    label=speed_segment_label(record),
+                    tone="express" if record.get("cluster_key") == "sprint" or record["maxspeed"] >= 70 else "connector",
+                )
+                for record in select_showcase_records(
+                    build_keyed_clusters(
+                        standard_records,
+                        key_fn=lambda item: (
+                            "sprint"
+                            if item["maxspeed"] >= 80 or item["lanes"] >= 4
+                            else "connector"
+                            if item["maxspeed"] >= 60 or highway_family_label(item["highway"]) in {"primary", "secondary"}
+                            else "shortcut"
+                            if highway_family_label(item["highway"]) == "residential"
+                            else "urban"
+                            if item["length_m"] >= 70
+                            else None
+                        ),
+                    ) or standard_records,
+                    key_fn=lambda item: item["maxspeed"] * max(item["length_m"], 1.0) + item["lanes"] * 45.0 + item["length_m"] * 0.4,
+                    min_length_m=170.0,
+                    min_index_gap=6,
+                    bucket_fn=lambda item: str(item.get("cluster_key") or f"{highway_family_label(item['highway'])}:{item['maxspeed'] // 10}"),
+                )
+            ],
+            "markers": [
+                {"label": result["origin_label"], "kind": "origin", **result["origin"]},
+                {"label": result["destination_label"], "kind": "destination", **result["destination"]},
+            ],
+        },
+        "traffic": {
+            "mode": "standart",
+            "baseline_route": result.get("google_route", []),
+            "segments": [
+                segment_entry(
+                    record,
+                    label=traffic_segment_label(record),
+                    tone="relief" if record.get("cluster_key") in {"bypass", "relief"} or record["lane_split_m"] >= 180 else "pressure",
+                )
+                for record in select_showcase_records(
+                    build_keyed_clusters(
+                        standard_records,
+                        key_fn=lambda item: (
+                            "bypass"
+                            if item["lane_split_m"] >= 180 or item["lanes"] >= 4
+                            else "relief"
+                            if item["lane_split_m"] >= 110
+                            else "rush"
+                            if highway_family_label(item["highway"]) in {"primary", "secondary"}
+                            else "pressure"
+                            if item["length_m"] >= 80
+                            else None
+                        ),
+                    ) or standard_records,
+                    key_fn=lambda item: item["lane_split_m"] * 2.2 + item["lanes"] * 26.0 + item["length_m"] * 0.65,
+                    min_length_m=170.0,
+                    min_index_gap=6,
+                    bucket_fn=lambda item: str(item.get("cluster_key") or highway_family_label(item["highway"])),
+                )
+            ],
+        },
+        "shield": {
+            "mode": "guvenli",
+            "segments": [
+                segment_entry(
+                    record,
+                    label=shield_segment_label(record),
+                    tone="watch" if record.get("cluster_key") == "watch" or record["high_risk"] or record["viraj_tehlike"] > 0 else "safe",
+                )
+                for record in select_showcase_records(
+                    build_keyed_clusters(
+                        [r for r in safe_records if not r["high_risk"] and r["viraj_tehlike"] == 0] or safe_records,
+                        key_fn=lambda item: (
+                            "watch"
+                            if item["high_risk"] or item["viraj_tehlike"] > 0
+                            else "neighborhood"
+                            if highway_family_label(item["highway"]) == "residential"
+                            else "arterial"
+                            if highway_family_label(item["highway"]) == "primary"
+                            else "connector"
+                        ),
+                    ) or safe_records,
+                    key_fn=lambda item: item["length_m"] * 1.1 - item["viraj_tehlike"] * 80.0 + item["lanes"] * 12.0,
+                    min_length_m=170.0,
+                    min_index_gap=6,
+                    bucket_fn=lambda item: str(item.get("cluster_key") or highway_family_label(item["highway"])),
+                )
+            ],
+        },
+        "curvature": {
+            "mode": "viraj_keyfi",
+            "segments": [
+                segment_entry(
+                    record,
+                    label=curvature_segment_label(record),
+                    tone="hairpin" if record["hairpin"] > 0 else "fun" if record["viraj_fun"] > 0 else "danger",
+                )
+                for record in select_showcase_records(
+                    build_signal_clusters(
+                        curvy_records,
+                        signal_fn=lambda item: item["viraj_fun"] > 0 or item["viraj_tehlike"] > 0 or item["hairpin"] > 0,
+                        bridge_limit=1,
+                        bridge_max_length_m=145.0,
+                    ) or curvy_records,
+                    key_fn=lambda item: item["viraj_fun"] * 180.0 + item["viraj_tehlike"] * 140.0 + item["hairpin"] * 260.0 + item["length_m"] * 1.2,
+                    min_length_m=120.0,
+                    min_index_gap=6,
+                    bucket_fn=lambda item: "hairpin" if item["hairpin"] > 0 else ("apex" if item["viraj_fun"] >= 5 else "sweeper"),
+                )
+            ],
+        },
+        "elevation": {
+            "mode": "viraj_keyfi",
+            "segments": [
+                segment_entry(
+                    record,
+                    label=elevation_segment_label(record),
+                    tone="climb" if record["grade"] >= 0 else "descent",
+                )
+                for record in select_showcase_records(
+                    build_keyed_clusters(
+                        curvy_records or standard_records,
+                        key_fn=lambda item: (
+                            "steep-climb"
+                            if item["grade"] >= 0.05
+                            else "climb"
+                            if item["grade"] >= 0.02
+                            else "steep-descent"
+                            if item["grade"] <= -0.05
+                            else "descent"
+                            if item["grade"] <= -0.015
+                            else None
+                        ),
+                    ) or (curvy_records or standard_records),
+                    key_fn=lambda item: abs(item["grade"]) * max(item["length_m"], 1.0) + item["length_m"] * 0.2,
+                    min_length_m=150.0,
+                    min_index_gap=6,
+                    bucket_fn=lambda item: str(item.get("cluster_key") or ("climb" if item["grade"] >= 0 else "descent")),
+                )
+            ],
+        },
+    }
+
+
 def find_fun_richer_path(
     graph: nx.MultiDiGraph,
     source: int,
@@ -334,6 +812,7 @@ def main() -> None:
     }
 
     selected_paths: list[list] = []
+    selected_paths_by_mode: dict[str, list] = {}
 
     for mode in MODES:
         print(f"Rota hesaplaniyor: {mode}")
@@ -408,6 +887,7 @@ def main() -> None:
                     )
 
         selected_paths.append(mode_nodes)
+        selected_paths_by_mode[mode] = mode_nodes
         coords = nodes_to_coords(graph, mode_nodes)
 
         result["modes"][mode] = {
@@ -427,6 +907,12 @@ def main() -> None:
             f"  -> {len(coords)} nokta, {selected['toplam_mesafe_m']:.0f}m, "
             f"{selected['toplam_sure_s']:.0f}s"
         )
+
+    result["feature_overlays"] = build_feature_overlays(
+        graph,
+        result,
+        selected_paths_by_mode=selected_paths_by_mode,
+    )
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     output_path = OUTPUT_DIR / "motomap_route.json"

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -48,6 +48,7 @@ class RoutePreviewResponse(BaseModel):
     google_route: list[LatLngResponse]
     google_stats: GoogleStatsResponse
     modes: Dict[str, RouteModeResponse]
+    feature_overlays: Dict[str, Any] | None = None
 
 
 class RoutePreviewInfoResponse(BaseModel):
