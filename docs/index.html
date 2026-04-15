@@ -700,6 +700,67 @@
   </div>
 </div></section>
 
+<!-- ============ LIVE LOCAL MAP ============ -->
+<section class="sec sec-alt live-lab" id="live-lab"><div class="c">
+  <div class="sec-h r"><div class="sec-e">Local Live View</div><h2 class="sec-t">MotoMap route preview with <em class="em">live traffic</em></h2><p class="sec-d">This block is designed for your GitHub Pages homepage but prefers the MotoMap Docker API running on your own machine. It renders the current route payload, styles the route modes, and refreshes live HERE traffic pressure for the visible corridor.</p></div>
+
+  <div class="live-lab-shell r">
+    <article class="live-lab-map-card">
+      <div class="live-lab-map-head">
+        <div>
+          <span class="live-lab-kicker">Docker bridge</span>
+          <h3>Live MotoMap route canvas</h3>
+        </div>
+        <button class="live-lab-refresh" id="live-lab-refresh" type="button">Refresh Live View</button>
+      </div>
+      <div class="live-lab-map-stage">
+        <div class="live-lab-map-loading" id="live-lab-map-loading">Local API aranıyor...</div>
+        <div class="live-lab-map" id="live-lab-map"></div>
+      </div>
+    </article>
+
+    <aside class="live-lab-panel">
+      <div class="live-lab-status-row">
+        <span class="live-lab-pill is-idle" id="live-lab-status">Waiting for local API</span>
+        <span class="live-lab-origin" id="live-lab-api-origin">localhost bridge not connected</span>
+      </div>
+
+      <div class="live-lab-journey">
+        <span class="live-lab-kicker">Current route</span>
+        <h3 id="live-lab-route-title">MotoMap local preview</h3>
+        <p id="live-lab-route-copy">When the Docker stack responds on <code>localhost:8008</code>, this panel switches from the embedded preview to your live route payload and HERE traffic summary.</p>
+      </div>
+
+      <div class="live-lab-traffic-grid">
+        <article class="live-lab-stat">
+          <span>Average speed</span>
+          <strong id="live-lab-speed">—</strong>
+          <em id="live-lab-speed-foot">Live traffic flow</em>
+        </article>
+        <article class="live-lab-stat">
+          <span>Free flow</span>
+          <strong id="live-lab-free-flow">—</strong>
+          <em id="live-lab-free-flow-foot">Provider baseline</em>
+        </article>
+        <article class="live-lab-stat">
+          <span>Congestion</span>
+          <strong id="live-lab-congestion">—</strong>
+          <em id="live-lab-congestion-foot">Pressure index</em>
+        </article>
+        <article class="live-lab-stat">
+          <span>Segments</span>
+          <strong id="live-lab-segments">—</strong>
+          <em id="live-lab-segments-foot">Observed edges</em>
+        </article>
+      </div>
+
+      <div class="live-lab-traffic-banner" id="live-lab-traffic-banner">Traffic pressure will appear here after the first live refresh.</div>
+      <div class="live-lab-mode-list" id="live-lab-mode-list"></div>
+      <p class="live-lab-note">GitHub Pages can reach <strong>localhost</strong> only on the same machine where your Docker stack is running. Other visitors will see the themed shell and fallback route until the API is exposed from a public host.</p>
+    </aside>
+  </div>
+</div></section>
+
 <!-- ============ CTA ============ -->
 <section class="sec cta-s" id="cta-section"><div class="c"><div class="cta-b r">
   <div class="cta-eb">Private Preview</div>
@@ -2408,6 +2469,384 @@ window.addEventListener("DOMContentLoaded",function(){
     });
   }
 });
+</script>
+<style>
+.live-lab{padding-top:108px;padding-bottom:72px}
+.live-lab-shell{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(320px,.95fr);gap:24px;align-items:stretch}
+.live-lab-map-card,.live-lab-panel{position:relative;border:1px solid rgba(255,255,255,.08);background:linear-gradient(180deg,rgba(36,21,48,.88),rgba(19,11,26,.96));border-radius:28px;box-shadow:0 24px 80px rgba(0,0,0,.32),inset 0 1px 0 rgba(255,255,255,.05);overflow:hidden}
+.live-lab-map-card::before,.live-lab-panel::before{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at top right,rgba(250,204,21,.08),transparent 34%),radial-gradient(circle at bottom left,rgba(232,121,249,.08),transparent 38%)}
+.live-lab-map-head{position:relative;z-index:2;display:flex;justify-content:space-between;gap:18px;align-items:center;padding:24px 24px 0}
+.live-lab-map-head h3,.live-lab-journey h3{font-size:26px;line-height:1.05;letter-spacing:-.8px}
+.live-lab-kicker{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--accent-hi)}
+.live-lab-kicker::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px rgba(250,204,21,.8)}
+.live-lab-refresh{border:none;border-radius:999px;padding:12px 18px;font:800 12px/1 var(--sans);letter-spacing:.18em;text-transform:uppercase;color:#1A0F1E;background:linear-gradient(135deg,#FDE047,var(--accent) 55%,#F59E0B);box-shadow:0 10px 24px rgba(250,204,21,.22),inset 0 1px 0 rgba(255,255,255,.36);cursor:pointer;transition:transform .24s,box-shadow .24s,filter .24s}
+.live-lab-refresh:hover{transform:translateY(-2px);box-shadow:0 16px 32px rgba(250,204,21,.28),inset 0 1px 0 rgba(255,255,255,.42);filter:saturate(1.05)}
+.live-lab-map-stage{position:relative;padding:20px 24px 24px}
+.live-lab-map{width:100%;min-height:560px;border-radius:22px;border:1px solid rgba(255,255,255,.08);background:linear-gradient(180deg,rgba(14,10,20,.9),rgba(11,14,20,.98));overflow:hidden}
+.live-lab-map .maplibregl-control-container{font-family:var(--sans)}
+.live-lab-map-loading{position:absolute;top:38px;left:42px;z-index:4;padding:10px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(19,11,26,.82);backdrop-filter:blur(12px);font-size:12px;font-weight:600;color:var(--t2);box-shadow:0 10px 24px rgba(0,0,0,.24);transition:opacity .26s,transform .26s}
+.live-lab-map-loading.is-hidden{opacity:0;transform:translateY(-6px);pointer-events:none}
+.live-lab-panel{padding:24px}
+.live-lab-status-row{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:22px}
+.live-lab-pill{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.1);font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;background:rgba(255,255,255,.04);color:var(--t)}
+.live-lab-pill::before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor;box-shadow:0 0 10px currentColor}
+.live-lab-pill.is-idle{color:#FACC15;background:rgba(250,204,21,.08);border-color:rgba(250,204,21,.18)}
+.live-lab-pill.is-live{color:#86EFAC;background:rgba(134,239,172,.1);border-color:rgba(134,239,172,.22)}
+.live-lab-pill.is-error{color:#FB923C;background:rgba(251,146,60,.1);border-color:rgba(251,146,60,.22)}
+.live-lab-origin{font-family:var(--mono);font-size:12px;color:var(--t3)}
+.live-lab-journey{padding:18px 18px 20px;border-radius:22px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03)}
+.live-lab-journey p{margin-top:12px;color:var(--t2);line-height:1.72;font-size:14px}
+.live-lab-journey code{font-family:var(--mono);font-size:.9em;color:var(--accent-hi)}
+.live-lab-traffic-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:16px}
+.live-lab-stat{padding:14px 16px;border-radius:20px;border:1px solid rgba(255,255,255,.07);background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}
+.live-lab-stat span{display:block;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--t3);font-weight:700}
+.live-lab-stat strong{display:block;margin-top:8px;font-size:28px;line-height:1;font-weight:900;letter-spacing:-1px}
+.live-lab-stat em{display:block;margin-top:8px;font-style:normal;color:var(--t2);font-size:12px}
+.live-lab-traffic-banner{margin-top:16px;padding:14px 16px;border-radius:18px;border:1px solid rgba(232,121,249,.16);background:linear-gradient(90deg,rgba(232,121,249,.1),rgba(250,204,21,.08));color:var(--t);font-size:13px;line-height:1.6}
+.live-lab-mode-list{display:grid;gap:12px;margin-top:16px}
+.live-lab-mode-card{padding:16px;border-radius:20px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03)}
+.live-lab-mode-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.live-lab-mode-name{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:800}
+.live-lab-mode-dot{width:10px;height:10px;border-radius:50%;box-shadow:0 0 14px currentColor;background:currentColor;flex:none}
+.live-lab-mode-badge{padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);font-family:var(--mono);font-size:11px;color:var(--t2)}
+.live-lab-mode-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.live-lab-mode-metric{padding:11px 12px;border-radius:16px;background:rgba(19,11,26,.62);border:1px solid rgba(255,255,255,.06)}
+.live-lab-mode-metric span{display:block;font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.14em}
+.live-lab-mode-metric strong{display:block;margin-top:6px;font-size:14px}
+.live-lab-note{margin-top:16px;color:var(--t2);font-size:12.5px;line-height:1.7}
+@media (max-width: 1120px){.live-lab-shell{grid-template-columns:1fr}.live-lab-map{min-height:520px}}
+@media (max-width: 720px){.live-lab-map-head{flex-direction:column;align-items:flex-start}.live-lab-map-stage{padding:16px}.live-lab-map{min-height:420px}.live-lab-panel{padding:18px}.live-lab-traffic-grid,.live-lab-mode-metrics{grid-template-columns:1fr}.live-lab-origin{width:100%}}
+</style>
+<script>
+(function(){
+  const section=document.getElementById('live-lab');
+  const mapNode=document.getElementById('live-lab-map');
+  const loadingNode=document.getElementById('live-lab-map-loading');
+  const refreshButton=document.getElementById('live-lab-refresh');
+  const statusNode=document.getElementById('live-lab-status');
+  const apiOriginNode=document.getElementById('live-lab-api-origin');
+  const routeTitleNode=document.getElementById('live-lab-route-title');
+  const routeCopyNode=document.getElementById('live-lab-route-copy');
+  const speedNode=document.getElementById('live-lab-speed');
+  const freeFlowNode=document.getElementById('live-lab-free-flow');
+  const congestionNode=document.getElementById('live-lab-congestion');
+  const segmentsNode=document.getElementById('live-lab-segments');
+  const trafficBannerNode=document.getElementById('live-lab-traffic-banner');
+  const modeListNode=document.getElementById('live-lab-mode-list');
+  if(!section||!mapNode||!window.maplibregl) return;
+
+  const modeMeta={
+    google:{label:'Google baseline',color:'#60A5FA',dash:[1.4,1.2]},
+    standart:{label:'Standard Mode',color:'#FACC15'},
+    viraj_keyfi:{label:'Twist Finder',color:'#E879F9'},
+    guvenli:{label:'Ride Shield',color:'#86EFAC'}
+  };
+
+  const apiCandidates=[];
+  if(location.protocol.startsWith('http')&&location.hostname!=='alipasha03.github.io') apiCandidates.push(location.origin.replace(/\/$/,''));
+  ['http://127.0.0.1:8008','http://localhost:8008'].forEach((base)=>{
+    if(!apiCandidates.includes(base)) apiCandidates.push(base);
+  });
+
+  let activeBase='';
+  let liveMap=null;
+  let mapLoaded=false;
+  let pendingData=null;
+  let refreshTimer=null;
+
+  function setStatus(text,state){
+    statusNode.textContent=text;
+    statusNode.className='live-lab-pill ' + (state==='live'?'is-live':state==='error'?'is-error':'is-idle');
+  }
+
+  function setLoading(text,hidden){
+    loadingNode.textContent=text;
+    loadingNode.classList.toggle('is-hidden',Boolean(hidden));
+  }
+
+  function formatDistance(meters){
+    const km=(Number(meters)||0)/1000;
+    if(!km) return '—';
+    return km>=10?km.toFixed(0)+' km':km.toFixed(1)+' km';
+  }
+
+  function formatMinutes(seconds){
+    const mins=Math.max(1,Math.round((Number(seconds)||0)/60));
+    return Number.isFinite(mins)?mins+' dk':'—';
+  }
+
+  function formatSpeed(value){
+    return Number.isFinite(Number(value))?Number(value).toFixed(1)+' km/h':'—';
+  }
+
+  function formatPercent(value){
+    return Number.isFinite(Number(value))?Number(value).toFixed(0)+'%':'—';
+  }
+
+  function formatCount(value){
+    return Number.isFinite(Number(value))?Math.round(Number(value)).toLocaleString():'—';
+  }
+
+  function allRoutePoints(payload){
+    const points=[];
+    const add=(entries)=>{
+      (entries||[]).forEach((item)=>{
+        const lat=Number(item&&item.lat);
+        const lng=Number(item&&item.lng);
+        if(Number.isFinite(lat)&&Number.isFinite(lng)) points.push([lng,lat]);
+      });
+    };
+    add(payload&&payload.google_route);
+    const modes=payload&&payload.modes?Object.values(payload.modes):[];
+    modes.forEach((mode)=>add(mode&&mode.coordinates));
+    add([payload&&payload.origin,payload&&payload.destination]);
+    return points;
+  }
+
+  function bboxFromPayload(payload){
+    const points=allRoutePoints(payload);
+    if(!points.length) return '40.95,29.00,41.02,29.10';
+    let west=Infinity,south=Infinity,east=-Infinity,north=-Infinity;
+    points.forEach((coord)=>{
+      west=Math.min(west,coord[0]);
+      south=Math.min(south,coord[1]);
+      east=Math.max(east,coord[0]);
+      north=Math.max(north,coord[1]);
+    });
+    const padLon=Math.max(0.012,(east-west)*0.45);
+    const padLat=Math.max(0.008,(north-south)*0.45);
+    return [south-padLat,west-padLon,north+padLat,east+padLon].map((value)=>value.toFixed(6)).join(',');
+  }
+
+  function pressureMeta(summary){
+    const congestion=Number(summary&&summary.congestion_pct)||0;
+    if(congestion>=70) return {label:'Heavy traffic pressure on the corridor.',color:'#F97316'};
+    if(congestion>=40) return {label:'Dense movement with clear slowdown pockets.',color:'#FACC15'};
+    return {label:'Traffic is flowing with manageable pressure.',color:'#86EFAC'};
+  }
+
+  function embeddedRoute(){
+    const node=document.getElementById('route-preview-data');
+    if(!node) return null;
+    try{return JSON.parse(node.textContent.trim());}catch(error){return null;}
+  }
+
+  async function fetchJson(url){
+    const response=await fetch(url,{headers:{accept:'application/json'},cache:'no-store'});
+    if(!response.ok) throw new Error(String(response.status));
+    return response.json();
+  }
+
+  async function resolveApiBase(){
+    if(activeBase) return activeBase;
+    for(const base of apiCandidates){
+      try{
+        const response=await fetch(base + '/health',{cache:'no-store'});
+        if(response.ok){
+          activeBase=base;
+          return base;
+        }
+      }catch(error){}
+    }
+    return '';
+  }
+
+  function ensureMap(){
+    if(liveMap) return;
+    liveMap=new maplibregl.Map({
+      container:mapNode,
+      style:'https://tiles.openfreemap.org/styles/dark',
+      center:[29.031,40.982],
+      zoom:12.9,
+      pitch:46,
+      bearing:-12,
+      attributionControl:true,
+      antialias:true
+    });
+    liveMap.addControl(new maplibregl.NavigationControl({showCompass:false}),'top-right');
+    liveMap.scrollZoom.disable();
+    liveMap.dragRotate.disable();
+    liveMap.touchZoomRotate.disableRotation();
+
+    liveMap.on('load',()=>{
+      mapLoaded=true;
+      if(!liveMap.getSource('live-lab-routes')){
+        liveMap.addSource('live-lab-routes',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
+        liveMap.addLayer({id:'live-lab-traffic-halo',type:'line',source:'live-lab-routes',filter:['==',['get','kind'],'traffic'],paint:{'line-color':['get','color'],'line-width':['interpolate',['linear'],['zoom'],10,10,14,18],'line-opacity':0.34,'line-blur':7}});
+        liveMap.addLayer({id:'live-lab-google',type:'line',source:'live-lab-routes',filter:['all',['==',['get','kind'],'route'],['==',['get','routeKey'],'google']],paint:{'line-color':['get','color'],'line-width':['interpolate',['linear'],['zoom'],10,2.4,14,3.6],'line-opacity':0.95,'line-dasharray':[1.2,1.15]}});
+        liveMap.addLayer({id:'live-lab-route-lines',type:'line',source:'live-lab-routes',filter:['all',['==',['get','kind'],'route'],['!=',['get','routeKey'],'google']],paint:{'line-color':['get','color'],'line-width':['interpolate',['linear'],['zoom'],10,3.5,14,5.8],'line-opacity':['coalesce',['get','opacity'],0.98]}});
+        liveMap.addLayer({id:'live-lab-points',type:'circle',source:'live-lab-routes',filter:['==',['get','kind'],'point'],paint:{'circle-radius':['case',['==',['get','pointRole'],'start'],7.5,6.5],'circle-color':['get','color'],'circle-stroke-color':'#F5F0F8','circle-stroke-width':2,'circle-opacity':0.98}});
+      }
+      if(pendingData) applyMapData(pendingData);
+    });
+    liveMap.on('error',()=>{
+      if(!mapLoaded) setLoading('Live map preview unavailable',false);
+    });
+  }
+
+  function routeFeature(key,coords,meta,opacity){
+    if(!Array.isArray(coords)||coords.length<2) return null;
+    const geometry=coords.map((item)=>[Number(item.lng),Number(item.lat)]).filter((coord)=>Number.isFinite(coord[0])&&Number.isFinite(coord[1]));
+    if(geometry.length<2) return null;
+    return {type:'Feature',properties:{kind:'route',routeKey:key,color:meta.color,opacity:opacity},geometry:{type:'LineString',coordinates:geometry}};
+  }
+
+  function pointFeature(coord,label,color,pointRole){
+    if(!coord) return null;
+    const lng=Number(coord.lng),lat=Number(coord.lat);
+    if(!Number.isFinite(lng)||!Number.isFinite(lat)) return null;
+    return {type:'Feature',properties:{kind:'point',label:label,color:color,pointRole:pointRole},geometry:{type:'Point',coordinates:[lng,lat]}};
+  }
+
+  function buildGeoJson(payload,trafficSummary){
+    const features=[];
+    const googleFeature=routeFeature('google',payload.google_route,modeMeta.google,0.92);
+    if(googleFeature) features.push(googleFeature);
+    ['standart','viraj_keyfi','guvenli'].forEach((key)=>{
+      const meta=modeMeta[key];
+      const entry=payload.modes&&payload.modes[key];
+      const feature=routeFeature(key,entry&&entry.coordinates,meta,key==='standart'?1:0.92);
+      if(feature) features.push(feature);
+      if(key==='standart'&&entry&&Array.isArray(entry.coordinates)&&entry.coordinates.length>1){
+        const pressure=pressureMeta(trafficSummary||{});
+        features.push({type:'Feature',properties:{kind:'traffic',routeKey:'traffic',color:pressure.color},geometry:{type:'LineString',coordinates:entry.coordinates.map((item)=>[Number(item.lng),Number(item.lat)]).filter((coord)=>Number.isFinite(coord[0])&&Number.isFinite(coord[1]))}});
+      }
+    });
+    const startFeature=pointFeature(payload.origin,payload.origin_label||'Origin','#FACC15','start');
+    const endFeature=pointFeature(payload.destination,payload.destination_label||'Destination','#E879F9','end');
+    if(startFeature) features.push(startFeature);
+    if(endFeature) features.push(endFeature);
+    return {type:'FeatureCollection',features};
+  }
+
+  function applyMapData(data){
+    pendingData=data;
+    if(!liveMap||!mapLoaded) return;
+    const source=liveMap.getSource('live-lab-routes');
+    if(source&&source.setData) source.setData(data);
+    const bounds=new maplibregl.LngLatBounds();
+    let hasBounds=false;
+    data.features.forEach((feature)=>{
+      if(feature.geometry.type==='LineString'){
+        feature.geometry.coordinates.forEach((coord)=>{bounds.extend(coord);hasBounds=true;});
+      }
+      if(feature.geometry.type==='Point'){
+        bounds.extend(feature.geometry.coordinates);hasBounds=true;
+      }
+    });
+    if(hasBounds){
+      liveMap.fitBounds(bounds,{padding:{top:64,right:64,bottom:64,left:64},duration:1100,maxZoom:14.2,essential:true});
+    }
+    setLoading('Live route rendered',true);
+  }
+
+  function renderModes(payload){
+    const cards=[];
+    const entries=[
+      ['standart',payload.modes&&payload.modes.standart],
+      ['viraj_keyfi',payload.modes&&payload.modes.viraj_keyfi],
+      ['guvenli',payload.modes&&payload.modes.guvenli]
+    ].filter((entry)=>entry[1]);
+    entries.forEach(([key,entry])=>{
+      const meta=modeMeta[key]||{label:key,color:'#FACC15'};
+      const stats=entry.stats||{};
+      cards.push('<article class="live-lab-mode-card">'
+        + '<div class="live-lab-mode-head">'
+        +   '<div class="live-lab-mode-name" style="color:'+meta.color+'"><span class="live-lab-mode-dot"></span>'+meta.label+'</div>'
+        +   '<span class="live-lab-mode-badge">'+formatDistance(stats.mesafe_m)+' · '+formatMinutes(stats.sure_s)+'</span>'
+        + '</div>'
+        + '<div class="live-lab-mode-metrics">'
+        +   '<div class="live-lab-mode-metric"><span>Fun score</span><strong>'+((Number(stats.viraj_fun)||0).toFixed(0))+'</strong></div>'
+        +   '<div class="live-lab-mode-metric"><span>Risk flags</span><strong>'+((Number(stats.yuksek_risk)||0).toFixed(0))+'</strong></div>'
+        +   '<div class="live-lab-mode-metric"><span>Lane filtering</span><strong>'+formatDistance(stats.serit_paylasimi)+'</strong></div>'
+        +   '<div class="live-lab-mode-metric"><span>Average grade</span><strong>'+(Number.isFinite(Number(stats.ortalama_egim))?(Math.abs(Number(stats.ortalama_egim))*100).toFixed(1)+'%':'—')+'</strong></div>'
+        + '</div>'
+        + '</article>');
+    });
+    modeListNode.innerHTML=cards.join('');
+  }
+
+  function renderPanel(payload,trafficPayload,sourceLabel){
+    const trafficSummary=trafficPayload&&trafficPayload.summary?trafficPayload.summary:{};
+    const pressure=pressureMeta(trafficSummary);
+    routeTitleNode.textContent=(payload.origin_label||'Origin') + ' → ' + (payload.destination_label||'Destination');
+    routeCopyNode.innerHTML='Source: <code>' + sourceLabel + '</code>. Google baseline remains dashed, while MotoMap modes stay color-coded for speed, twist, and calm riding preferences.';
+    apiOriginNode.textContent=activeBase?activeBase.replace(/^https?:\/\//,'') + '/api':'embedded fallback only';
+    speedNode.textContent=formatSpeed(trafficSummary.avg_speed_kmh);
+    freeFlowNode.textContent=formatSpeed(trafficSummary.avg_free_flow_speed_kmh);
+    congestionNode.textContent=formatPercent(trafficSummary.congestion_pct);
+    segmentsNode.textContent=formatCount(trafficSummary.segment_count);
+    trafficBannerNode.textContent=pressure.label + ' Last refresh: ' + (trafficPayload&&trafficPayload.timestamp_local?trafficPayload.timestamp_local:'fallback mode');
+    trafficBannerNode.style.borderColor=pressure.color;
+    trafficBannerNode.style.boxShadow='inset 0 0 0 1px rgba(255,255,255,.02), 0 0 0 1px rgba(255,255,255,.01)';
+    trafficBannerNode.style.background='linear-gradient(90deg,' + pressure.color.replace(')',',.18)').replace('rgb','rgba') + ', rgba(255,255,255,.04))';
+    renderModes(payload);
+  }
+
+  function safeBannerBackground(color){
+    const palette={
+      '#F97316':'linear-gradient(90deg,rgba(249,115,22,.18),rgba(255,255,255,.04))',
+      '#FACC15':'linear-gradient(90deg,rgba(250,204,21,.16),rgba(255,255,255,.04))',
+      '#86EFAC':'linear-gradient(90deg,rgba(134,239,172,.16),rgba(255,255,255,.04))'
+    };
+    return palette[color]||'linear-gradient(90deg,rgba(232,121,249,.12),rgba(255,255,255,.04))';
+  }
+
+  async function renderFallback(reason){
+    const payload=embeddedRoute();
+    if(!payload){
+      setStatus('Fallback unavailable','error');
+      routeCopyNode.textContent=reason;
+      modeListNode.innerHTML='';
+      setLoading('No local API and no embedded fallback route',false);
+      return;
+    }
+    setStatus('Showing embedded fallback','idle');
+    activeBase='';
+    apiOriginNode.textContent='embedded preview payload';
+    routeTitleNode.textContent=(payload.origin_label||'MotoMap') + ' → ' + (payload.destination_label||'Preview');
+    routeCopyNode.textContent=reason;
+    speedNode.textContent='—';
+    freeFlowNode.textContent='—';
+    congestionNode.textContent='—';
+    segmentsNode.textContent='—';
+    trafficBannerNode.textContent='Local Docker API not reachable. The route preview below is still rendered from the embedded payload so the section remains visually integrated.';
+    trafficBannerNode.style.background='linear-gradient(90deg,rgba(232,121,249,.14),rgba(255,255,255,.04))';
+    trafficBannerNode.style.borderColor='rgba(232,121,249,.22)';
+    renderModes(payload);
+    applyMapData(buildGeoJson(payload,null));
+    setLoading('Fallback route rendered',true);
+  }
+
+  async function refreshLiveView(){
+    setStatus('Connecting to local API','idle');
+    setLoading('Connecting to localhost:8008 ...',false);
+    ensureMap();
+    const base=await resolveApiBase();
+    if(!base){
+      await renderFallback('The public page cannot reach your local Docker stack right now. Start the API on localhost:8008 and press refresh to switch this section to live mode.');
+      return;
+    }
+    try{
+      const routePayload=await fetchJson(base + '/api/route');
+      const trafficPayload=await fetchJson(base + '/api/here/traffic/flow-summary?bbox=' + encodeURIComponent(bboxFromPayload(routePayload)));
+      setStatus('Live local API connected','live');
+      renderPanel(routePayload,trafficPayload,'localhost Docker API');
+      trafficBannerNode.style.background=safeBannerBackground(pressureMeta(trafficPayload.summary).color);
+      applyMapData(buildGeoJson(routePayload,trafficPayload.summary));
+    }catch(error){
+      await renderFallback('The section reached your machine but the live route or HERE traffic endpoint failed during refresh. Check the local API logs and try again.');
+      setStatus('Live refresh failed','error');
+    }
+  }
+
+  refreshButton.addEventListener('click',()=>{refreshLiveView();});
+  refreshLiveView();
+  refreshTimer=window.setInterval(refreshLiveView,60000);
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='visible') refreshLiveView();
+  });
+})();
 </script>
 </body>
 </html>
