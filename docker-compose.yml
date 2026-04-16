@@ -38,13 +38,14 @@ services:
       dockerfile: Dockerfile
     container_name: motomap_api
     ports:
-      - "8000:8000"
+      - "8008:8000"
     environment:
       DATABASE_URL: postgresql+asyncpg://motomap:${POSTGRES_PASSWORD:-motomap_dev_secret}@postgres:5432/motomap
       REDIS_URL: redis://redis:6379
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change_me_in_production}
       OPENWEATHER_API_KEY: ${OPENWEATHER_API_KEY:-}
       GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
+      SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -52,7 +53,7 @@ services:
         condition: service_healthy
     volumes:
       - .:/app
-    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload --reload-exclude "tmp*" --reload-exclude "pytest-*" --reload-exclude ".tmp*"
 
 volumes:
   postgres_data:

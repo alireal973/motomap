@@ -18,13 +18,13 @@ class LatLngResponse(BaseModel):
 
 
 class ModeStatsResponse(BaseModel):
-    mesafe_m: int
-    sure_s: int
-    viraj_fun: int
-    viraj_tehlike: int
-    yuksek_risk: int
+    mesafe_m: float
+    sure_s: float
+    viraj_fun: float
+    viraj_tehlike: float
+    yuksek_risk: float
     ortalama_egim: float
-    serit_paylasimi: int
+    serit_paylasimi: float
     ucretli: bool
 
 
@@ -34,10 +34,10 @@ class RouteModeResponse(BaseModel):
 
 
 class GoogleStatsResponse(BaseModel):
-    mesafe_m: int
-    sure_s: int
-    mesafe_text: str
-    sure_text: str
+    mesafe_m: float | None = None
+    sure_s: float | None = None
+    mesafe_text: str | None = None
+    sure_text: str | None = None
 
 
 class RoutePreviewResponse(BaseModel):
@@ -58,11 +58,14 @@ class RoutePreviewInfoResponse(BaseModel):
     note: str
 
 
+from fastapi.concurrency import run_in_threadpool
+
 @router.get("", response_model=RoutePreviewResponse)
 async def get_route_preview():
     svc = RoutePreviewService()
     try:
-        return RoutePreviewResponse.model_validate(svc.get_route_payload())
+        payload = await run_in_threadpool(svc.get_route_payload)
+        return RoutePreviewResponse.model_validate(payload)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Route payload not found")
     except ValueError as exc:

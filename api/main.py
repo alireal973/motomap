@@ -19,6 +19,7 @@ from api.routes.gamification import router as gamification_router
 from api.routes.history import router as history_router
 from api.routes.notifications import router as notifications_router
 from api.routes.upload import router as upload_router
+from api.routes.here_live import router as here_live_router
 from api.middleware.rate_limit import RateLimitMiddleware
 from api.middleware.logging import RequestLoggingMiddleware
 
@@ -64,6 +65,7 @@ app.include_router(gamification_router)
 app.include_router(history_router)
 app.include_router(notifications_router)
 app.include_router(upload_router)
+app.include_router(here_live_router)
 
 
 @app.get("/health")

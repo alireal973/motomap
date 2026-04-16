@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+@theme {
+  --color-stitch-dark: #0e1f3b; /* Deep space blue */
+  --color-stitch-base: #2a5a9c; /* Classic stitch blue */
+  --color-stitch-light: #6db4d8; /* Cyan/teal belly */
+  --color-stitch-accent: #ff5c5c; /* Coral/red accent */
+  --color-stitch-thread: #f1f5f9; /* White/silver thread color */
+
+  /* Heavy stitched appearance */
+  --border-width-3: 3px;
+
+  /* Overly rounded, soft UI corners */
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  --radius-3xl: 2rem;
+}
+
+@layer utilities {
+  .stitch-border {
+    border-width: 3px;
+    border-style: dashed;
+    border-color: var(--color-stitch-base);
+  }
+
+  .stitch-border-light {
+    border-width: 3px;
+    border-style: dashed;
+    border-color: var(--color-stitch-thread);
+  }
+
+  .stitch-shadow {
+    box-shadow: 4px 4px 0px 0px var(--color-stitch-dark);
+  }
+}
