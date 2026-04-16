@@ -39,6 +39,9 @@ class Motorcycle(Base):
     year = Column(Integer)
     cc = Column(Integer, nullable=False)
     type = Column(Enum(MotorcycleType), nullable=False)
+    weight_kg = Column(Integer, nullable=True)
+    torque_nm = Column(Integer, nullable=True)
+    tire_type = Column(String(50), nullable=True)
 
     color = Column(String(50))
     nickname = Column(String(100))

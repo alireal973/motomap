@@ -41,6 +41,9 @@ class MotorcycleResponse(BaseModel):
     year: Optional[int] = None
     cc: int
     type: str
+    weight_kg: Optional[int] = None
+    torque_nm: Optional[int] = None
+    tire_type: Optional[str] = None
     color: Optional[str] = None
     nickname: Optional[str] = None
     is_active: bool = True
@@ -56,6 +59,9 @@ class CreateMotorcycleRequest(BaseModel):
     model: str = Field(..., max_length=100)
     cc: int = Field(..., gt=0, le=3000)
     type: str
+    weight_kg: Optional[int] = Field(None, gt=0, le=1000)
+    torque_nm: Optional[int] = Field(None, gt=0, le=500)
+    tire_type: Optional[str] = Field(None, max_length=50)
     year: Optional[int] = Field(None, ge=1900, le=2030)
     color: Optional[str] = Field(None, max_length=50)
     nickname: Optional[str] = Field(None, max_length=100)
@@ -68,6 +74,9 @@ class UpdateMotorcycleRequest(BaseModel):
     model: Optional[str] = Field(None, max_length=100)
     cc: Optional[int] = Field(None, gt=0, le=3000)
     type: Optional[str] = None
+    weight_kg: Optional[int] = Field(None, gt=0, le=1000)
+    torque_nm: Optional[int] = Field(None, gt=0, le=500)
+    tire_type: Optional[str] = Field(None, max_length=50)
     year: Optional[int] = Field(None, ge=1900, le=2030)
     color: Optional[str] = Field(None, max_length=50)
     nickname: Optional[str] = Field(None, max_length=100)
@@ -136,6 +145,9 @@ async def create_motorcycle(request: CreateMotorcycleRequest, user=Depends(get_c
         model=request.model,
         cc=request.cc,
         type=moto_type,
+        weight_kg=request.weight_kg,
+        torque_nm=request.torque_nm,
+        tire_type=request.tire_type,
         year=request.year,
         color=request.color,
         nickname=request.nickname,

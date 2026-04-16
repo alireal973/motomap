@@ -45,6 +45,9 @@ export type Motorcycle = {
   model: string;
   cc: number;
   type: MotorcycleType;
+  weight_kg?: number;
+  torque_nm?: number;
+  tire_type?: string;
   isActive: boolean;
 };
 

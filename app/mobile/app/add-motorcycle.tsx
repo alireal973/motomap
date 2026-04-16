@@ -31,6 +31,9 @@ export default function AddMotorcycleScreen() {
   const [model, setModel] = useState("");
   const [cc, setCc] = useState("");
   const [type, setType] = useState<MotorcycleType>("naked");
+  const [weightKg, setWeightKg] = useState("");
+  const [torqueNm, setTorqueNm] = useState("");
+  const [tireType, setTireType] = useState("road");
 
   const canSave = brand.trim().length > 0 && model.trim().length > 0 && cc.trim().length > 0;
 
@@ -42,6 +45,9 @@ export default function AddMotorcycleScreen() {
       model: model.trim(),
       cc: parseInt(cc, 10) || 0,
       type,
+      weight_kg: weightKg ? parseInt(weightKg, 10) : undefined,
+      torque_nm: torqueNm ? parseInt(torqueNm, 10) : undefined,
+      tire_type: tireType,
       isActive: motorcycles.length === 0,
     });
     router.back();
@@ -79,6 +85,46 @@ export default function AddMotorcycleScreen() {
           onChangeText={setCc}
           keyboardType="numeric"
         />
+
+        <Text style={styles.label}>Ağırlık (kg)</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="180"
+          placeholderTextColor={colors.textTertiary}
+          value={weightKg}
+          onChangeText={setWeightKg}
+          keyboardType="numeric"
+        />
+
+        <Text style={styles.label}>Tork (Nm)</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="64"
+          placeholderTextColor={colors.textTertiary}
+          value={torqueNm}
+          onChangeText={setTorqueNm}
+          keyboardType="numeric"
+        />
+
+        <Text style={styles.label}>Lastik Tipi</Text>
+        <View style={styles.typeRow}>
+          {[
+            { key: "road", label: "Yol / Asfalt" },
+            { key: "dual", label: "Dual-Sport" },
+            { key: "offroad", label: "Offroad / Dişli" },
+          ].map((t) => (
+            <TouchableOpacity
+              key={t.key}
+              style={[styles.typeBtn, tireType === t.key && styles.typeBtnActive]}
+              onPress={() => setTireType(t.key)}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.typeBtnText, tireType === t.key && styles.typeBtnTextActive]}>
+                {t.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
         <Text style={styles.label}>Tip</Text>
         <View style={styles.typeRow}>
