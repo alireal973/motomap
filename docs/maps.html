@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MotoMap -- Smart Route Planning for Motorcycle Riders</title>
+  <title>MotoMap -- Interactive Maps & Previews</title>
   <meta name="description" content="MotoMap builds curvy, scenic, and safe routes optimized for motorcycles. Open-source routing powered by traffic flow theory and real-time data." />
   <link rel="icon" href="assets/motomap-icon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -438,100 +438,263 @@
   <a href="index.html" class="nav-b"><img src="assets/motomap-icon.svg" alt="MotoMap"/><span class="nav-wm">MOTOMAP</span><span class="nav-ver">v0.98</span></a>
   <button class="mt" onclick="document.querySelector('.nl').classList.toggle('open')" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 5h14M3 10h14M3 15h14" stroke="#F5F0F8" stroke-width="1.5" stroke-linecap="round"/></svg></button>
   <ul class="nl">
-    <li><a href="maps.html#features" class="on">Features</a></li>
+    <li><a href="#features" class="on">Features</a></li>
     <li><a href="index.html#how">Riders</a></li>
     <li><a href="releases.html">Releases</a></li>
     <li><a href="#cta-section" class="cta">Request Demo</a></li>
   </ul>
 </div></nav>
+<section class="hero" id="hero-top" style="min-height: auto; padding: 160px 0 60px;">
+  <div class="c" style="text-align: center;">
+    <h1 style="font-size: 48px; margin-bottom: 20px;">MotoMap <span class="grad">Previews</span></h1>
+    <p style="color: var(--t2); font-size: 18px; max-width: 600px; margin: 0 auto;">Live interactive rendering and snapshots of our routing intelligence.</p>
+  </div>
+</section>
+<!-- ============ FEATURES: 5-LAYER MAP SHOWCASE ============ -->
+<section id="features" class="sec"><div class="c">
+  <div class="sec-h r"><div class="sec-e">Engine</div><h2 class="sec-t">Five layers of <em class="em">intelligence</em></h2><p class="sec-d">Every road segment passes through five data layers. The result is a route no generic map app can match.</p></div>
 
-<section class="hero" id="hero-top">
-  <div class="orb orb-1"></div>
-  <div class="orb orb-2"></div>
-  <div class="orb orb-3"></div>
+  <div class="layers-wrap r">
+    <div class="layer-stepper" id="layer-stepper" aria-hidden="true">
+      <span class="layer-stepper-label" id="layer-stepper-label">01 / 05</span>
+      <div class="layer-stepper-rail">
+        <span class="layer-stepper-dot current" data-step="0"></span>
+        <span class="layer-stepper-line"><span class="layer-stepper-line-fill"></span></span>
+        <span class="layer-stepper-dot" data-step="1"></span>
+        <span class="layer-stepper-line"><span class="layer-stepper-line-fill"></span></span>
+        <span class="layer-stepper-dot" data-step="2"></span>
+        <span class="layer-stepper-line"><span class="layer-stepper-line-fill"></span></span>
+        <span class="layer-stepper-dot" data-step="3"></span>
+        <span class="layer-stepper-line"><span class="layer-stepper-line-fill"></span></span>
+        <span class="layer-stepper-dot" data-step="4"></span>
+      </div>
+    </div>
+
+    <div class="layers-demo">
+      <div class="layers-stage" id="layers-stage">
+        <div class="features-map-shell">
+          <div class="features-map" id="features-map" aria-hidden="true"></div>
+          <div class="features-map-grid"></div>
+          <div class="features-map-vignette"></div>
+          <div class="features-map-loading" id="features-map-loading">Loading live map style</div>
+          <div class="features-map-chip">
+            <span class="features-map-chip-dot" id="features-map-chip-dot"></span>
+            <span id="features-map-chip">Fast Roads</span>
+          </div>
+          <div class="features-map-meta">
+            <span class="features-map-meta-label" id="features-map-meta-label">Road Bias</span>
+            <strong class="features-map-meta-value" id="features-map-meta-value">Live Style</strong>
+          </div>
+          <div class="features-map-caption">
+            <span class="features-map-caption-kicker">Map View</span>
+            <strong id="features-map-caption">Road hierarchy + ride bias</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="layer-cards">
+        <div class="layer-panel-head">
+          <div class="layer-panel-top">
+            <span class="layer-panel-live">Live route lens</span>
+            <span class="layer-panel-step" id="layer-panel-step">Layer 01</span>
+          </div>
+          <span class="layer-panel-kicker">Ride Legend</span>
+          <h3 id="layer-panel-title">Fast Roads</h3>
+          <p id="layer-panel-copy">Real OpenStreetMap basemap with MotoMap bias highlighting the quickest motorcycle-friendly corridors.</p>
+          <div class="layer-legend" id="layer-legend">
+            <div class="layer-legend-row">
+              <span class="layer-legend-swatch" id="legend-swatch-1"></span>
+              <span class="layer-legend-label" id="legend-label-1">Express spine</span>
+              <span class="layer-legend-value" id="legend-value-1">Fastest corridor</span>
+            </div>
+            <div class="layer-legend-row">
+              <span class="layer-legend-swatch" id="legend-swatch-2"></span>
+              <span class="layer-legend-label" id="legend-label-2">City sweep</span>
+              <span class="layer-legend-value" id="legend-value-2">Balanced flow</span>
+            </div>
+            <div class="layer-legend-row">
+              <span class="layer-legend-swatch" id="legend-swatch-3"></span>
+              <span class="layer-legend-label" id="legend-label-3">Neighborhood calm</span>
+              <span class="layer-legend-value" id="legend-value-3">Low-pressure exit</span>
+            </div>
+          </div>
+          <div class="layer-metrics">
+            <div class="layer-metric">
+              <span class="layer-metric-label">Focus</span>
+              <span class="layer-metric-value" id="metric-signal">Road Bias</span>
+            </div>
+            <div class="layer-metric">
+              <span class="layer-metric-label">Refresh</span>
+              <span class="layer-metric-value" id="metric-update">Live Style</span>
+            </div>
+            <div class="layer-metric">
+              <span class="layer-metric-label">Priority</span>
+              <span class="layer-metric-value" id="metric-weight">Primary</span>
+            </div>
+          </div>
+        </div>
+        <div class="layer-card active" data-layer="0">
+          <div class="layer-num" style="color:var(--accent);border-color:rgba(250,204,21,.25);background:var(--accent-d)">01</div>
+          <div class="layer-info"><h3>Fast <em>Roads</em></h3><p>Hero corridors that feel instantly faster and cleaner than a generic route view.</p><div class="layer-rail"><span class="layer-note">Road hierarchy focus</span><span class="layer-tag">Lead corridor</span></div></div>
+        </div>
+        <div class="layer-card" data-layer="1">
+          <div class="layer-num" style="color:var(--orange);border-color:rgba(251,146,60,.25);background:var(--orange-d)">02</div>
+          <div class="layer-info"><h3>Live <em>Traffic</em></h3><p>Rush pressure appears as cinematic hotspots instead of dry engineering overlays.</p><div class="layer-rail"><span class="layer-note">Momentum heat</span><span class="layer-tag">Pressure lens</span></div></div>
+        </div>
+        <div class="layer-card" data-layer="2">
+          <div class="layer-num" style="color:var(--green);border-color:rgba(134,239,172,.25);background:var(--green-d)">03</div>
+          <div class="layer-info"><h3>Ride <em>Shield</em></h3><p>Safer mode from the real route preview payload, focused on calmer segments and cleaner exits.</p><div class="layer-rail"><span class="layer-note">Low-risk line</span><span class="layer-tag">Protected path</span></div></div>
+        </div>
+        <div class="layer-card" data-layer="3">
+          <div class="layer-num" style="color:var(--pink);border-color:rgba(232,121,249,.25);background:var(--cyan-d)">04</div>
+          <div class="layer-info"><h3>Twist <em>Finder</em></h3><p>Curvy sections light up with premium route energy instead of looking like GIS output.</p><div class="layer-rail"><span class="layer-note">Fun-factor lens</span><span class="layer-tag">Lead ribbon</span></div></div>
+        </div>
+        <div class="layer-card" data-layer="4">
+          <div class="layer-num" style="color:var(--purple);border-color:rgba(192,132,252,.25);background:var(--purple-d)">05</div>
+          <div class="layer-info"><h3>Elevation <em>Flow</em></h3><p>Climbs and ridge lines read like a premium terrain story, not a raw topo chart.</p><div class="layer-rail"><span class="layer-note">Terrain mood</span><span class="layer-tag">Grade direction</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div></section>
+
+
+<!-- ============ APP PREVIEW ============ -->
+<section class="sec sec-alt shots" id="preview"><div class="c">
+  <div class="sec-h r"><div class="sec-e">Preview</div><h2 class="sec-t">A cleaner look at the <em class="em">product</em></h2><p class="sec-d">Real screen captures from the live MotoMap experience, framed as premium product previews for the site.</p></div>
+  <div class="shots-grid">
+    <article class="shot-card r" style="--sc:rgba(250,204,21,.38)">
+      <div class="shot-frame"><img src="assets/app-shot-speed.png" alt="MotoMap speed layer preview" loading="lazy"/></div>
+      <div class="shot-copy">
+        <span class="shot-kicker">Fast Roads</span>
+        <h3>Lead corridor view</h3>
+        <p>The product opens with a cleaner speed hierarchy, where primary corridors immediately read as the riding line.</p>
+      </div>
+    </article>
+    <article class="shot-card r" style="--sc:rgba(251,146,60,.38)">
+      <div class="shot-frame"><img src="assets/app-shot-traffic.png" alt="MotoMap traffic layer preview" loading="lazy"/></div>
+      <div class="shot-copy">
+        <span class="shot-kicker">Live Traffic</span>
+        <h3>Pressure without clutter</h3>
+        <p>Rush pockets stay visual and premium, without collapsing the route view into generic heatmap noise.</p>
+      </div>
+    </article>
+    <article class="shot-card r" style="--sc:rgba(232,121,249,.38)">
+      <div class="shot-frame"><img src="assets/app-shot-curvature.png" alt="MotoMap twist finder preview" loading="lazy"/></div>
+      <div class="shot-copy">
+        <span class="shot-kicker">Twist Finder</span>
+        <h3>Fun road storytelling</h3>
+        <p>Curves, apex zones, and supporting ribbons present the route as a premium riding experience instead of raw GIS data.</p>
+      </div>
+    </article>
+  </div>
+</div></section>
+
+
+<!-- ============ LIVE LOCAL MAP ============ -->
+<section class="sec sec-alt live-lab" id="live-lab"><div class="c">
+  <div class="sec-h r"><div class="sec-e">Local Live View</div><h2 class="sec-t">MotoMap route preview with <em class="em">live traffic</em></h2><p class="sec-d">This block is designed for your GitHub Pages homepage but prefers the MotoMap Docker API running on your own machine. It renders the current route payload, styles the route modes, and refreshes live HERE traffic pressure for the visible corridor.</p></div>
+
+  <div class="live-lab-shell r">
+    <article class="live-lab-map-card">
+      <div class="live-lab-map-head">
+        <div>
+          <span class="live-lab-kicker">Docker bridge</span>
+          <h3>Live MotoMap route canvas</h3>
+        </div>
+        <button class="live-lab-refresh" id="live-lab-refresh" type="button">Refresh Live View</button>
+      </div>
+      <div class="live-lab-map-stage">
+        <div class="live-lab-map-loading" id="live-lab-map-loading">Local API aranıyor...</div>
+        <div class="live-lab-map" id="live-lab-map"></div>
+      </div>
+    </article>
+
+    <aside class="live-lab-panel">
+      <div class="live-lab-status-row">
+        <span class="live-lab-pill is-idle" id="live-lab-status">Waiting for local API</span>
+        <span class="live-lab-origin" id="live-lab-api-origin">localhost bridge not connected</span>
+      </div>
+
+      <div class="live-lab-journey">
+        <span class="live-lab-kicker">Current route</span>
+        <h3 id="live-lab-route-title">MotoMap local preview</h3>
+        <p id="live-lab-route-copy">When the Docker stack responds on <code>localhost:8008</code>, this panel switches from the embedded preview to your live route payload and HERE traffic summary.</p>
+      </div>
+
+      <div class="live-lab-traffic-grid">
+        <article class="live-lab-stat">
+          <span>Average speed</span>
+          <strong id="live-lab-speed">—</strong>
+          <em id="live-lab-speed-foot">Live traffic flow</em>
+        </article>
+        <article class="live-lab-stat">
+          <span>Free flow</span>
+          <strong id="live-lab-free-flow">—</strong>
+          <em id="live-lab-free-flow-foot">Provider baseline</em>
+        </article>
+        <article class="live-lab-stat">
+          <span>Congestion</span>
+          <strong id="live-lab-congestion">—</strong>
+          <em id="live-lab-congestion-foot">Pressure index</em>
+        </article>
+        <article class="live-lab-stat">
+          <span>Segments</span>
+          <strong id="live-lab-segments">—</strong>
+          <em id="live-lab-segments-foot">Observed edges</em>
+        </article>
+      </div>
+
+      <div class="live-lab-traffic-banner" id="live-lab-traffic-banner">Traffic pressure will appear here after the first live refresh.</div>
+      <div class="live-lab-mode-list" id="live-lab-mode-list"></div>
+      <p class="live-lab-note">GitHub Pages can reach <strong>localhost</strong> only on the same machine where your Docker stack is running. Other visitors will see the themed shell and fallback route until the API is exposed from a public host.</p>
+    </aside>
+  </div>
+</div></section>
+
+
+<!-- ============ LIVE LAB ============ -->
+<section id="live-lab" class="sec sec-alt live-lab">
   <div class="c">
-    <div class="hero-c">
-      <div class="badge r"><span class="badge-dot"></span>Private route intelligence</div>
-      <h1 class="r rd1">Route Intelligence<br/>for <span class="grad">Motorcycle Riders</span></h1>
-      <p class="hero-p r rd2">Five-layer route intelligence, premium live map layers, and rider-first guidance designed for a polished motorcycle navigation product.</p>
-      <div class="hero-a r rd3">
-        <a href="#cta-section" class="btn btn-p"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8h10M9 4l4 4-4 4" stroke-linecap="round" stroke-linejoin="round"/></svg>Request Demo</a>
-        <a href="#features" class="btn btn-g">Explore Features<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6l4 4 4-4"/></svg></a>
+    <div class="sec-h r"><div class="sec-e">Live Data</div><h2 class="sec-t">Local <em class="em">Live View</em></h2><p class="sec-d">Real-time MotoMap route payload and live HERE traffic summaries, bridged seamlessly from Docker.</p></div>
+    <div class="live-lab-shell">
+      <div class="live-lab-map-card">
+        <div class="live-lab-header">
+          <span class="live-lab-kicker">Docker bridge</span>
+          <button id="live-lab-refresh" class="btn btn-g">Refresh Live View</button>
+        </div>
+        <div class="live-lab-map-container">
+          <div id="live-lab-map"></div>
+          <div id="live-lab-map-loading" class="live-lab-map-loading">Connecting payload...</div>
+        </div>
       </div>
+      <div class="live-lab-panel">
+        <div class="live-lab-status-row">
+          <span id="live-lab-status" class="live-lab-pill is-idle">Evaluating</span>
+          <span id="live-lab-api-origin" class="live-lab-api-origin">...</span>
+        </div>
+        
+        <div class="live-lab-journey-card">
+          <h3 id="live-lab-route-title" style="margin:0 0 6px 0;font-size:22px;font-weight:600;">Route Preview</h3>
+          <p id="live-lab-route-copy" style="margin:0;color:var(--t2);font-size:15px;line-height:1.4;">Connecting to local graph...</p>
+        </div>
+        
+        <div class="live-lab-traffic-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:24px 0;">
+          <div class="live-lab-stat"><div class="stat-label" style="color:var(--t2);font-size:13px;margin-bottom:8px;">Average speed</div><div id="live-lab-speed" class="stat-val" style="font-size:28px;font-weight:900;font-family:var(--mono);">--</div></div>
+          <div class="live-lab-stat"><div class="stat-label" style="color:var(--t2);font-size:13px;margin-bottom:8px;">Free flow</div><div id="live-lab-free-flow" class="stat-val" style="font-size:28px;font-weight:900;font-family:var(--mono);">--</div></div>
+          <div class="live-lab-stat"><div class="stat-label" style="color:var(--t2);font-size:13px;margin-bottom:8px;">Congestion</div><div id="live-lab-congestion" class="stat-val" style="font-size:28px;font-weight:900;font-family:var(--mono);">--</div></div>
+          <div class="live-lab-stat"><div class="stat-label" style="color:var(--t2);font-size:13px;margin-bottom:8px;">Segments</div><div id="live-lab-segments" class="stat-val" style="font-size:28px;font-weight:900;font-family:var(--mono);">--</div></div>
+        </div>
+        
+        <div id="live-lab-traffic-banner" class="live-lab-traffic-banner" style="padding:16px;border-radius:12px;margin-bottom:24px;border-left:4px solid var(--t3);font-weight:600;font-size:15px;background:rgba(255,255,255,0.03);">Calculating traffic pressure...</div>
+        
+        <div id="live-lab-mode-list" class="live-lab-mode-list" style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px;"></div>
+        
+        <div style="font-size:13px;color:var(--t3);text-align:center;">Note: Public visitors will see fallback data; live data requires the localhost Docker stack.</div>
       </div>
-      
     </div>
   </div>
 </section>
-
-<!-- ============ RIDER PERSONAS ============ -->
-<section id="how" class="sec sec-alt"><div class="c">
-  <div class="sec-h r"><div class="sec-e">Riders</div><h2 class="sec-t">Built for every <em class="em">rider</em></h2><p class="sec-d">Whether you commute, tour, race, or explore &mdash; MotoMap adapts to how you actually ride.</p></div>
-
-  <div class="riders" id="riders-grid">
-    <div class="rider-card r" style="--rc:rgba(250,204,21,.12);--ri-c1:var(--accent);--ri-c2:var(--orange)">
-      <div class="rider-initial"><span>S</span></div>
-      <h3>Sport <em>Rider</em></h3>
-      <p>Track-day addicts and sportbike owners. You want the fastest, smoothest asphalt-only routes &mdash; no detours, no gravel, maximum lean angle.</p>
-      <div class="rider-quote" style="border-color:var(--accent)">"I used to memorize highway exits. Now MotoMap finds roads I didn't know existed."</div>
-    </div>
-    <div class="rider-card r rd1" style="--rc:rgba(134,239,172,.12);--ri-c1:var(--green);--ri-c2:#22D3EE">
-      <div class="rider-initial"><span>A</span></div>
-      <h3>Adventure <em>Rider</em></h3>
-      <p>GS owners and dual-sport explorers. You seek gravel passes, mountain trails, and roads that don't show up on Google Maps.</p>
-      <div class="rider-quote" style="border-color:var(--green)">"The surface awareness feature alone saved me from a 40km mud section in Thrace."</div>
-    </div>
-    <div class="rider-card r rd2" style="--rc:rgba(251,146,60,.12);--ri-c1:var(--orange);--ri-c2:var(--accent)">
-      <div class="rider-initial"><span>T</span></div>
-      <h3>Touring <em>Rider</em></h3>
-      <p>Long-haul riders who cover 500+ km per day. You need weather-aware routing, elevation profiles, and rest stop planning.</p>
-      <div class="rider-quote" style="border-color:var(--orange)">"The grade analysis told me about a 12% pass before I loaded my panniers. Game changer."</div>
-    </div>
-    <div class="rider-card r rd3" style="--rc:rgba(192,132,252,.12);--ri-c1:var(--purple);--ri-c2:var(--pink)">
-      <div class="rider-initial"><span>C</span></div>
-      <h3>Daily <em>Commuter</em></h3>
-      <p>Riders who fight traffic twice a day. You need the fastest path through congestion with real-time lane-filtering advantage.</p>
-      <div class="rider-quote" style="border-color:var(--purple)">"BPR congestion model + lane filtering = 22 minutes off my daily commute."</div>
-    </div>
-  </div>
-</div></section>
-
-<!-- ============ SOCIAL PROOF NUMBERS ============ -->
-<section class="sec sec-alt" id="numbers"><div class="c">
-  <div class="sec-h r"><div class="sec-e">Scale</div><h2 class="sec-t">Numbers that <em class="em">move</em></h2><p class="sec-d">Measured, tested, and open for inspection &mdash; every claim backed by code.</p></div>
-
-  <div class="numbers r">
-    <div class="num-item" style="--nc:rgba(250,204,21,.2)"><div class="num-val" style="color:var(--accent)" data-to="1005">0</div><div class="num-label">Tests passing</div></div>
-    <div class="num-item" style="--nc:rgba(232,121,249,.2)"><div class="num-val" style="color:var(--pink)" data-to="20">0</div><div class="num-label">Surface types</div></div>
-    <div class="num-item" style="--nc:rgba(251,146,60,.2)"><div class="num-val" style="color:var(--orange)" data-to="5">0</div><div class="num-label">Speed layers</div></div>
-    <div class="num-item" style="--nc:rgba(134,239,172,.2)"><div class="num-val" style="color:var(--green)" data-to="4">0</div><div class="num-label">Riding modes</div></div>
-  </div>
-
-  <div class="marquee-wrap" style="margin-top:56px">
-    <div class="marquee-track">
-      <div class="marquee-item"><span class="marquee-dot" style="background:var(--accent);box-shadow:0 0 8px var(--accent)"></span>Sport Routing</div>
-      <div class="marquee-item"><span class="marquee-dot" style="background:var(--orange);box-shadow:0 0 8px var(--orange)"></span>Twisty Mountain Passes</div>
-      <div class="marquee-item"><span class="marquee-dot" style="background:var(--green);box-shadow:0 0 8px var(--green)"></span>Safe Commute</div>
-      <div class="marquee-item"><span class="marquee-dot" style="background:var(--pink);box-shadow:0 0 8px var(--pink)"></span>Weather-Aware</div>
-      <div class="marquee-item"><span class="marquee-dot" style="background:var(--purple);box-shadow:0 0 8px var(--purple)"></span>OpenStreetMap Data</div>
-      <div class="marquee-item"><span class="marquee-dot" style="background:var(--accent);box-shadow:0 0 8px var(--accent)"></span>BPR Congestion</div>
-      <div class="marquee-item"><span class="marquee-dot" style="background:var(--orange);box-shadow:0 0 8px var(--orange)"></span>Lane Filtering</div>
-      <div class="marquee-item"><span class="marquee-dot" style="background:var(--green);box-shadow:0 0 8px var(--green)"></span>Grade Analysis</div>
-      <div class="marquee-item"><span class="marquee-dot" style="background:var(--pink);box-shadow:0 0 8px var(--pink)"></span>Surface Detection</div>
-      <div class="marquee-item"><span class="marquee-dot" style="background:var(--purple);box-shadow:0 0 8px var(--purple)"></span>Curvature Scoring</div>
-      <div class="marquee-item"><span class="marquee-dot" style="background:var(--accent);box-shadow:0 0 8px var(--accent)"></span>Sport Routing</div>
-      <div class="marquee-item"><span class="marquee-dot" style="background:var(--orange);box-shadow:0 0 8px var(--orange)"></span>Twisty Mountain Passes</div>
-      <div class="marquee-item"><span class="marquee-dot" style="background:var(--green);box-shadow:0 0 8px var(--green)"></span>Safe Commute</div>
-      <div class="marquee-item"><span class="marquee-dot" style="background:var(--pink);box-shadow:0 0 8px var(--pink)"></span>Weather-Aware</div>
-      <div class="marquee-item"><span class="marquee-dot" style="background:var(--purple);box-shadow:0 0 8px var(--purple)"></span>OpenStreetMap Data</div>
-      <div class="marquee-item"><span class="marquee-dot" style="background:var(--accent);box-shadow:0 0 8px var(--accent)"></span>BPR Congestion</div>
-      <div class="marquee-item"><span class="marquee-dot" style="background:var(--orange);box-shadow:0 0 8px var(--orange)"></span>Lane Filtering</div>
-      <div class="marquee-item"><span class="marquee-dot" style="background:var(--green);box-shadow:0 0 8px var(--green)"></span>Grade Analysis</div>
-      <div class="marquee-item"><span class="marquee-dot" style="background:var(--pink);box-shadow:0 0 8px var(--pink)"></span>Surface Detection</div>
-      <div class="marquee-item"><span class="marquee-dot" style="background:var(--purple);box-shadow:0 0 8px var(--purple)"></span>Curvature Scoring</div>
-    </div>
-  </div>
-</div></section>
 
 <!-- ============ CTA ============ -->
 <section class="sec cta-s" id="cta-section"><div class="c"><div class="cta-b r">
@@ -555,7 +718,7 @@
     </div>
     <div class="ft-col"><h4>Product</h4><ul>
       <li><a href="#features">Features</a></li>
-        <li><a href="maps.html#live-lab">Live Map</a></li>
+        <li><a href="#live-lab">Live Map</a></li>
       <li><a href="#how">Riders</a></li>
       <li><a href="releases.html">Releases</a></li>
     </ul></div>
