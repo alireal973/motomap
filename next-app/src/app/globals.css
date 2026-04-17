@@ -1,35 +1,103 @@
 @import "tailwindcss";
 
 @theme {
-  --color-stitch-dark: #0e1f3b; /* Deep space blue */
-  --color-stitch-base: #2a5a9c; /* Classic stitch blue */
-  --color-stitch-light: #6db4d8; /* Cyan/teal belly */
+  /* ── Stitch Palette (original) ── */
+  --color-stitch-dark: #0e1f3b;   /* Deep space blue */
+  --color-stitch-base: #2a5a9c;   /* Classic stitch blue */
+  --color-stitch-mid: #2a5a9c;    /* Alias for components */
+  --color-stitch-light: #6db4d8;  /* Cyan/teal belly */
+  --color-stitch-sky: #a8e0f6;    /* Light sky accent */
   --color-stitch-accent: #ff5c5c; /* Coral/red accent */
-  --color-stitch-thread: #f1f5f9; /* White/silver thread color */
+  --color-stitch-gold: #f6c549;   /* Gold accent */
+  --color-stitch-thread: #f1f5f9; /* White/silver thread */
+  --color-stitch-surface: #f8fafc;/* Surface white */
 
-  /* Heavy stitched appearance */
+  /* ── Heavy stitched appearance ── */
   --border-width-3: 3px;
 
-  /* Overly rounded, soft UI corners */
+  /* ── Radii ── */
   --radius-xl: 1rem;
   --radius-2xl: 1.5rem;
   --radius-3xl: 2rem;
+  --radius-4xl: 2.5rem;
 }
 
+/* ── Base reset ── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: var(--color-stitch-dark);
+  color: var(--color-stitch-thread);
+  margin: 0;
+}
+
+::selection {
+  background: var(--color-stitch-light);
+  color: var(--color-stitch-dark);
+}
+
+/* ── Utility classes ── */
 @layer utilities {
   .stitch-border {
     border-width: 3px;
     border-style: dashed;
     border-color: var(--color-stitch-base);
   }
-
   .stitch-border-light {
     border-width: 3px;
     border-style: dashed;
-    border-color: var(--color-stitch-thread);
+    border-color: color-mix(in srgb, var(--color-stitch-thread) 30%, transparent);
   }
-
   .stitch-shadow {
     box-shadow: 4px 4px 0px 0px var(--color-stitch-dark);
+  }
+  .text-gradient {
+    background: linear-gradient(135deg, var(--color-stitch-light), var(--color-stitch-sky));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .text-gradient-warm {
+    background: linear-gradient(135deg, var(--color-stitch-accent), var(--color-stitch-gold));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .glass {
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .glass-strong {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  .glow-accent {
+    box-shadow: 0 0 48px -12px rgba(255, 92, 92, 0.35);
+  }
+  .glow-blue {
+    box-shadow: 0 0 64px -12px rgba(109, 180, 216, 0.3);
+  }
+}
+
+/* ── Noise grain overlay ── */
+@layer base {
+  .grain::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: 0.03;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 256px 256px;
   }
 }
