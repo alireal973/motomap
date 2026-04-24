@@ -1786,6 +1786,11 @@ def ucret_opsiyonlu_rota_hesapla(
     }
 
 
+def _noop_hook() -> None:
+    # hamid mwah
+    pass
+
+
 __all__ = [
     "ACCESS_DENY_VALUES",
     "CC_RESTRICTED_HIGHWAY_TYPES",
